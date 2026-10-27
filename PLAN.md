@@ -78,7 +78,7 @@ Zet deze formules in **één configuratiebestand**, want jullie gaan ze vaak bij
 
 **Gevolgen:**
 - **xG is alleen voor de PL gratis.** Kies statistieken voor de punten die in alle competities bestaan, of laat de opdrachten per competitie verschillen.
-- **Spelers hebben per bron een ander id.** Maak dus één eigen `players`-tabel met een koppeltabel (`player_sources`). Een speler die transfereert of promoveert moet hetzelfde id houden.
+- **Spelers hebben per bron een ander id.** Maak dus één eigen `players`-tabel en bewaar per bron het vaste nummer van de speler (zie §6). Een speler die transfereert of promoveert moet hetzelfde id houden.
 - **"Live" is niet nodig om te scouten.** Het volstaat om de stats na elke wedstrijddag bij te werken, een paar keer per dag. Een live-ticker ("hoe doet mijn speler het nu?") kan later, alleen voor de PL.
 - **Niet scrapen bij FotMob, Sofascore of Transfermarkt.** Dat mag niet volgens hun voorwaarden en ze blokkeren je. Echte transferwaardes heb je dus niet. Wil je "prijzen" voor spelers, bereken die dan zelf.
 
@@ -112,13 +112,14 @@ Zet deze formules in **één configuratiebestand**, want jullie gaan ze vaak bij
 
 ## 6. Database (eerste versie)
 
-**Voetbaldata**
+**Voetbaldata** (wat al bestaat, staat in [`data/schema.sql`](data/schema.sql))
 - `competitions`: PL, Championship, League One
-- `teams`: id, naam, competition_id
-- `players`: id, naam, geboortedatum, positie, team_id
-- `player_sources`: player_id, bron, extern_id
-- `fixtures`: id, competition_id, thuis, uit, aftrap, score, status
-- `player_match_stats`: player_id, fixture_id, minuten, goals, assists, xg, xa, tackles, recoveries, …
+- `teams`: id, naam, afkorting, competition_id, fpl_code
+- `players`: id, naam, volledige_naam, geboortedatum, positie, team_id, nieuws, fpl_code
+- `fixtures`: id, competition_id, seizoen, speeldag, thuis_team_id, uit_team_id, aftrap, thuis_score, uit_score, status, fpl_code
+- `player_match_stats`: player_id, fixture_id, minuten, goals, assists, xg, xa, tackles, recoveries, … (volgende stap)
+
+Elke tabel heeft een eigen `id`. Per bron bewaren we het vaste nummer in een eigen kolom: nu `fpl_code`, later `api_football_id`. Dat is eenvoudiger dan een aparte koppeltabel zolang er maar twee bronnen zijn.
 
 **Spel**
 - `profiles`: user_id, weergavenaam
@@ -166,7 +167,7 @@ Zet deze formules in **één configuratiebestand**, want jullie gaan ze vaak bij
 ### Sessie 2: fundament
 
 - **Web:** maak een Supabase-project en een Next.js-project met `npx create-next-app@latest -e with-supabase web`. Zorg dat inloggen lokaal werkt en zet login met Google of Discord aan.
-- **Data:** maak de tabellen voor de voetbaldata aan in Supabase (SQL). Schrijf `ingest.py`, dat de PL-teams en -spelers inlaadt. Zet de sleutels in `.env`.
+- **Data:** maak de tabellen voor de voetbaldata aan (SQL). Schrijf `ingest.py`, dat de PL-teams, -spelers en -wedstrijden inlaadt. *Gedaan, voorlopig in een lokale SQLite-database. De verhuis naar Supabase volgt zodra het Supabase-project er is; zet de sleutels dan in `.env`.*
 - **Klaar als:** je kunt inloggen en alle PL-spelers in de database staan.
 
 ### Sessie 3: scoutingdatabase

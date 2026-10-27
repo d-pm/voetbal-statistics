@@ -19,6 +19,13 @@ def haal_basisdata_op():
     return antwoord.json()
 
 
+def haal_wedstrijden_op():
+    """Alle 380 wedstrijden van dit seizoen, gespeeld en nog te spelen."""
+    antwoord = requests.get(f"{BASIS_URL}/fixtures/", timeout=30)
+    antwoord.raise_for_status()
+    return antwoord.json()
+
+
 def bereken_leeftijd(geboortedatum):
     """'2001-03-24' -> 25. Geeft None terug als de geboortedatum onbekend is."""
     if not geboortedatum:

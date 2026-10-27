@@ -14,6 +14,9 @@ node_modules/
 .next/
 out/
 
+# Lokale database (maak je zelf aan met data/ingest.py)
+*.db
+
 # Overig
 .DS_Store
 Thumbs.db
