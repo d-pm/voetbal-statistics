@@ -6,6 +6,9 @@ Hier komt alles wat met voetbaldata te maken heeft: ophalen, omzetten en later d
 |---|---|
 | `fpl.py` | haalt alle Premier League-spelers op bij de FPL API en zet ze om naar een eenvoudige lijst |
 | `scout.py` | eerste scout-tool: zoekt spelers die passen bij een opdracht ("verdediger, max. 25 jaar, veel tackles") |
+| `schema.sql` | de tabellen van de database: competities, teams, spelers en wedstrijden |
+| `ingest.py` | haalt teams, spelers en wedstrijden op en bewaart ze in de database `voetbal.db` |
+| `query.py` | stel een vraag aan de database met SQL |
 | `requirements.txt` | de Python-pakketten die dit project nodig heeft |
 
 ## Starten (Windows)
@@ -34,6 +37,24 @@ Khalaili          CRY          22      559          25    4.03
 ...
 ```
 
+## De database
+
+```powershell
+.venv\Scripts\python ingest.py
+```
+
+Dit haalt alle teams, spelers en wedstrijden op en bewaart ze in `voetbal.db`. Dat is een SQLite-database: één bestand op je computer. Je mag het zo vaak draaien als je wilt, want bestaande rijen worden bijgewerkt en niet verdubbeld. Het bestand komt niet op GitHub: iedereen maakt het zelf aan.
+
+Een vraag stellen met SQL doe je zo:
+
+```powershell
+.venv\Scripts\python query.py "SELECT naam, afkorting FROM teams"
+```
+
+Wil je de tabellen liever bekijken door te klikken? Installeer dan in VS Code de extensie **SQLite Viewer** en open `voetbal.db`.
+
+**Waarom eerst SQLite en nog niet Supabase?** Zo heb je nog geen account nodig en leer je SQL met precies dezelfde tabellen. Als het Supabase-project er is, verhuizen we.
+
 ## Woorden die je in de code tegenkomt
 
 - **variabele**: een naam voor een waarde, zoals `POSITIE = "DEF"`
@@ -45,7 +66,7 @@ Khalaili          CRY          22      559          25    4.03
 - **import**: code uit een ander bestand of pakket gebruiken
 - **f-string** `f"..."`: tekst met waarden erin, zoals `f"{speler['naam']}"`
 
-Wil je meer leren, gebruik dan de officiële [Python-tutorial](https://docs.python.org/3/tutorial/) of de gratis cursus [Python for Everybody](https://www.py4e.com/).
+Wil je meer leren, gebruik dan de officiële [Python-tutorial](https://docs.python.org/3/tutorial/) of de gratis cursus [Python for Everybody](https://www.py4e.com/). SQL leer je snel met [SQLBolt](https://sqlbolt.com/).
 
 ## Oefeningen: dit doe je zelf
 
@@ -58,3 +79,14 @@ Doe ze in volgorde: elke oefening leert je iets nieuws. Probeer het eerst zelf, 
 5. **Onderpresteerders:** maak een veld "goals min xG" en zoek de aanvallers die het meest **onder** hun xG zitten. Zij krijgen kansen maar scoren (nog) niet. Dat zijn interessante spelers om te scouten. *(sorteren)*
 6. **Opslaan:** schrijf de kandidaten weg naar `kandidaten.csv` met de module `csv` en open het bestand in Excel. *(modules, bestanden)*
 7. **Uitdaging (voorbereiding op sessie 3 en 6):** haal met `f"{BASIS_URL}/event/8/live/"` de stats van één speeldag op en toon wie die week de meeste tackles had. Dit wordt de basis van de puntentelling. Hint: open de URL eerst in Firefox en kijk hoe de data eruitziet. *(zelf een API verkennen)*
+
+## SQL-oefeningen
+
+Draai eerst `ingest.py`. Test je antwoorden daarna met `query.py`.
+
+1. **Hoeveel spelers zijn er per positie?** *(GROUP BY)*
+2. **Alle spelers van je favoriete team**, gesorteerd op naam. *(JOIN, ORDER BY)*
+3. **De 10 jongste spelers** van de competitie. *(ORDER BY, LIMIT)*
+4. **Alle spelers met blessurenieuws.** *(WHERE)*
+5. **De volgende 5 wedstrijden**, met de namen van beide teams in plaats van hun id. Tip: je hebt twee keer een JOIN met `teams` nodig. *(aliassen)*
+6. **Uitdaging: maak de stand.** Bereken de punten per team uit alle afgelopen wedstrijden. *(CASE, SUM)*
