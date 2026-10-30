@@ -12,24 +12,24 @@ export default async function ScoutingPagina() {
   const { spelers, seizoen, speeldag, bijgewerktOp } = await haalSpelersOp();
 
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 sm:py-10">
-      <header className="mb-6">
-        <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+    <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 sm:px-6 sm:pt-12">
+      <header className="mb-6 sm:mb-8">
+        <p className="text-[13px] font-semibold text-accent sm:text-[15px]">
           Premier League {seizoen}
-          {speeldag !== null && ` · speeldag ${speeldag}`}
+          {speeldag !== null && ` · Speeldag ${speeldag}`}
         </p>
-        <h1 className="mt-1 text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl dark:text-zinc-50">
+        <h1 className="mt-1 text-[34px] font-bold leading-[1.1] tracking-[-0.025em] sm:text-5xl sm:tracking-[-0.03em]">
           Scoutingdatabase
         </h1>
-        <p className="mt-2 max-w-2xl text-zinc-600 dark:text-zinc-400">
-          Zoek spelers die passen bij de opdracht van je club. Filter op positie, team en leeftijd, en klik op een
-          kolom om te sorteren. Met &quot;Per 90 min&quot; vergelijk je spelers eerlijk, ook als ze minder speelden.
+        <p className="mt-3 max-w-2xl text-[17px] leading-[1.45] text-secundair">
+          Zoek spelers die passen bij de opdracht van je club. Met Per 90 vergelijk je eerlijk, ook als iemand minder
+          speelde. Tik op een speler voor alle cijfers.
         </p>
       </header>
 
       <ScoutingTabel spelers={spelers} />
 
-      <footer className="mt-10 border-t border-zinc-200 pt-4 text-xs text-zinc-500 dark:border-zinc-800">
+      <footer className="mt-12 text-xs text-secundair">
         Data: Fantasy Premier League · bijgewerkt op {datumEnTijd.format(new Date(bijgewerktOp))}
       </footer>
     </main>

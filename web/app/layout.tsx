@@ -1,38 +1,35 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "Voetbal Scout",
   description: "Scout spelers met echte voetbalstatistieken en speel tegen je vrienden.",
 };
 
+// De kleur van de statusbalk op een gsm, gelijk aan de achtergrond van de pagina
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f2f2f7" },
+    { media: "(prefers-color-scheme: dark)", color: "#000000" },
+  ],
+};
+
 // De layout staat rond elke pagina: hier komt alles wat overal hetzelfde is, zoals de bovenbalk.
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="nl" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-      <body className="flex min-h-full flex-col bg-zinc-50 font-sans text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
-        <div className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
-          <div className="mx-auto flex h-14 w-full max-w-6xl items-center gap-2.5 px-4 sm:px-6">
+    <html lang="nl" className="h-full antialiased">
+      <body className="flex min-h-full flex-col bg-grond font-sans text-primair">
+        <header className="navigatiebalk materiaal sticky top-0 z-30">
+          <div className="mx-auto flex h-12 w-full max-w-6xl items-center gap-2.5 px-4 sm:px-6">
             <span
               aria-hidden
-              className="grid size-7 place-items-center rounded-lg bg-emerald-600 text-sm font-bold text-white"
+              className="grid size-7 place-items-center rounded-[7px] bg-linear-to-b from-[#34c759] to-[#248a3d] text-[11px] font-bold tracking-[0.02em] text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.3)]"
             >
               VS
             </span>
-            <span className="font-semibold tracking-tight">Voetbal Scout</span>
+            <span className="text-[17px] font-semibold tracking-[-0.022em]">Voetbal Scout</span>
           </div>
-        </div>
+        </header>
         {children}
       </body>
     </html>
