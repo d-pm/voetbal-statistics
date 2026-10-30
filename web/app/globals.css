@@ -1,0 +1,135 @@
+@import "tailwindcss";
+
+/*
+ * Alle kleuren van de website staan hier, in licht en donker. Ze volgen de
+ * systeemkleuren van Apple. In de code gebruik je ze als class: bg-kaart,
+ * text-secundair, border-lijn, text-accent, ...
+ */
+:root {
+  color-scheme: light dark;
+
+  --grond: #f2f2f7; /* achtergrond van de pagina */
+  --kaart: #ffffff; /* kaarten en lijsten */
+  --kaart-hover: #f7f7f9;
+  --kaart-druk: #ececf1;
+  --vlak: #f2f2f7; /* vlakken binnen een kaart */
+  --primair: #1d1d1f; /* gewone tekst */
+  --secundair: rgb(60 60 67 / 0.72); /* uitleg en labels */
+  --tertiair: rgb(60 60 67 / 0.3); /* pijltjes en placeholders */
+  --lijn: rgb(60 60 67 / 0.16);
+  --vulling: rgb(118 118 128 / 0.12); /* zoekveld, keuzeknoppen */
+  --duim: #ffffff; /* de gekozen optie in een keuzeknop */
+  --accent: #248a3d; /* voetbalgroen */
+  --accent-zacht: rgb(52 199 89 / 0.1);
+  --waarschuwing: #c93400;
+  --waarschuwing-zacht: rgb(255 149 0 / 0.12);
+  --materiaal: rgb(242 242 247 / 0.72); /* doorschijnende balk bovenaan */
+  --scrim: rgb(0 0 0 / 0.3); /* donkere laag achter een sheet */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --grond: #000000;
+    --kaart: #1c1c1e;
+    --kaart-hover: #232325;
+    --kaart-druk: #2c2c2e;
+    --vlak: #2c2c2e;
+    --primair: #f5f5f7;
+    --secundair: rgb(235 235 245 / 0.62);
+    --tertiair: rgb(235 235 245 / 0.3);
+    --lijn: rgb(84 84 88 / 0.55);
+    --vulling: rgb(118 118 128 / 0.24);
+    --duim: #636366;
+    --accent: #30d158;
+    --accent-zacht: rgb(48 209 88 / 0.12);
+    --waarschuwing: #ff9f0a;
+    --waarschuwing-zacht: rgb(255 159 10 / 0.14);
+    --materiaal: rgb(22 22 24 / 0.72);
+    --scrim: rgb(0 0 0 / 0.55);
+  }
+}
+
+/* Meer contrast gevraagd in de instellingen van je toestel: duidelijkere lijnen */
+@media (prefers-contrast: more) {
+  :root {
+    --lijn: rgb(60 60 67 / 0.45);
+    --secundair: rgb(60 60 67 / 0.85);
+  }
+}
+
+@theme inline {
+  /* Het systeemlettertype: San Francisco op Apple-toestellen, Segoe UI op Windows */
+  --font-sans: -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  --color-grond: var(--grond);
+  --color-kaart: var(--kaart);
+  --color-kaart-hover: var(--kaart-hover);
+  --color-kaart-druk: var(--kaart-druk);
+  --color-vlak: var(--vlak);
+  --color-primair: var(--primair);
+  --color-secundair: var(--secundair);
+  --color-tertiair: var(--tertiair);
+  --color-lijn: var(--lijn);
+  --color-vulling: var(--vulling);
+  --color-duim: var(--duim);
+  --color-accent: var(--accent);
+  --color-accent-zacht: var(--accent-zacht);
+  --color-waarschuwing: var(--waarschuwing);
+  --color-waarschuwing-zacht: var(--waarschuwing-zacht);
+  --color-scrim: var(--scrim);
+}
+
+html {
+  -webkit-tap-highlight-color: transparent; /* geen grijze flits als je op een gsm tikt */
+  scrollbar-gutter: stable; /* de pagina verspringt niet als de scrollbalk verdwijnt */
+}
+
+/* Geen pijltjes in getalvakjes: je typt gewoon een getal */
+input[type="number"] {
+  appearance: textfield;
+}
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Doorschijnende balk: de pagina schuift er wazig onderdoor, zoals op een iPhone */
+.materiaal {
+  background-color: var(--materiaal);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .materiaal {
+    background-color: var(--grond);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+/*
+ * Het lijntje onder de bovenbalk verschijnt pas als je naar beneden scrolt,
+ * dus pas als er echt iets onder de balk schuift.
+ */
+.navigatiebalk {
+  box-shadow: 0 1px 0 var(--lijn);
+}
+
+@supports (animation-timeline: scroll()) {
+  .navigatiebalk {
+    animation: lijn-verschijnt linear both;
+    animation-timeline: scroll(root);
+    animation-range: 0 3rem;
+  }
+}
+
+@keyframes lijn-verschijnt {
+  from {
+    box-shadow: 0 1px 0 transparent;
+  }
+  to {
+    box-shadow: 0 1px 0 var(--lijn);
+  }
+}
