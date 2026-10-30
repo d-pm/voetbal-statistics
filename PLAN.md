@@ -173,7 +173,7 @@ Elke tabel heeft een eigen `id`. Per bron bewaren we het vaste nummer in een eig
 ### Sessie 3: scoutingdatabase
 
 - **Data:** laad de stats per wedstrijd van alle gespeelde speeldagen (`/api/event/{gw}/live/`). Maak een view met totalen en cijfers per 90 minuten.
-- **Web:** maak de scoutingpagina: een tabel met filters en sorteren.
+- **Web:** maak de scoutingpagina: een tabel met filters en sorteren. *Eerste versie gedaan. De data komt voorlopig rechtstreeks van de FPL API, maar alleen op de server en hoogstens één keer per uur. Zodra Supabase er is, komt ze uit onze eigen database.*
 
 ### Sessie 4: online zetten
 
