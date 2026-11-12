@@ -63,7 +63,10 @@ Wil je zien hoe de site op een gsm werkt? Druk in de browser op **F12** en daarn
 | `navigatie.tsx` | de bovenbalk, en op een gsm de tabbalk onderaan |
 | `scouting-tabel.tsx` | de filters, de lijst (gsm) en de tabel (tablet en computer) |
 | `gebruik-url-filters.ts` | houdt de filters bij en zet ze in de URL |
-| `speler-sheet.tsx` | de kaart met de cijfers van één speler. Op een gsm veeg je ze weg. |
+| `laatste-zoekopdracht.ts`, `terug-naar-spelers.tsx` | onthouden je laatste zoekopdracht, zodat "‹ Spelers" en de tab je daar terugbrengen |
+| `deel-knop.tsx` | deelt de link naar je zoekopdracht |
+| `sheet.tsx` | een kaart die boven de pagina verschijnt. Op een gsm veeg je ze weg. |
+| `speler-sheet.tsx` | die kaart met de cijfers van één speler |
 | `vorm-grafiek.tsx` | de grafiek per wedstrijd op het spelersprofiel |
 | `speeldag-overzicht.tsx` | de wedstrijden van een speeldag |
 | `aftellen.tsx` | de klok die aftelt naar de deadline |
@@ -100,6 +103,9 @@ Het ontwerp volgt de regels die Apple gebruikt voor de iPhone, vertaald naar een
 - **Navigatie:** bovenaan een doorschijnende balk waar de pagina wazig onderdoor schuift. Op een gsm staan de tabs onderaan, waar je duim zit.
 - **Meteen reageren:** een knop reageert al zodra je hem indrukt (`active:` in de classes), niet pas als je loslaat.
 - **Lijst op een gsm, tabel op een groter scherm:** een gsm is te smal voor twaalf kolommen. Daar toont elke rij het cijfer waarop je sorteert.
+- **Het belangrijkste eerst:** op een gsm zitten team, leeftijd, minuten en beschikbaarheid achter de knop "Filters". Een bolletje toont hoeveel er aanstaan, en de knop onderaan zegt hoeveel spelers je overhoudt terwijl je kiest.
+- **Je weet altijd waar je bent en hoe je terugkomt:** "‹ Spelers" en de tab Spelers brengen je terug naar je eigen zoekopdracht, niet naar een lege lijst.
+- **Waarschuwen voor het misgaat:** zet je Per 90 aan met minder dan 270 minuten, dan zegt de site dat die cijfers weinig betekenen, met een knop om het recht te zetten.
 - **Spelerskaart met veren:** de kaart volgt je vinger. Laat je los, dan berekent `projecteer()` waar je veeg naartoe ging: een snelle korte veeg sluit de kaart ook. De animaties komen van [Motion](https://motion.dev).
 - **Grafiek die je aanwijst:** ga met je vinger of muis over de staafjes en het grote getal erboven toont die ene wedstrijd.
 - **Rood en oranje alleen voor blessures:** oranje is twijfelachtig, rood is zeker afwezig. Er staat altijd een icoon en tekst bij, nooit alleen een kleur.

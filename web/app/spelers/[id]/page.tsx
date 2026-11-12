@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { PijlLinks } from "@/components/iconen";
 import { NieuwsBlok } from "@/components/nieuws";
 import { blokTitel, lijnErboven, tekstlink } from "@/components/stijl";
+import { TerugNaarSpelers } from "@/components/terug-naar-spelers";
 import { VormGrafiek } from "@/components/vorm-grafiek";
 import { haalCompetitieOp } from "@/lib/competitie";
 import { toonKorteDag, toonUur } from "@/lib/datum";
@@ -51,10 +51,7 @@ export async function generateMetadata({ params }: PageProps<"/spelers/[id]">): 
 export default function SpelerPagina({ params }: PageProps<"/spelers/[id]">) {
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-4 sm:px-6 sm:pt-8">
-      <Link href="/spelers" className={`-ml-1 inline-flex items-center gap-0.5 py-1 text-[17px] font-normal ${tekstlink}`}>
-        <PijlLinks className="size-4" />
-        Spelers
-      </Link>
+      <TerugNaarSpelers />
 
       {/* Terwijl de data van deze speler geladen wordt, toont Suspense de grijze blokjes (fallback) */}
       <Suspense fallback={<Skelet />}>

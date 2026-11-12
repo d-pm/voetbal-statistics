@@ -4,18 +4,27 @@ import { useMemo, useState, type ReactNode } from "react";
 import type { Positie, Speler } from "@/lib/competitie";
 import {
   STANDAARD,
+  aantalFilters,
   isGefilterd,
   pasToe,
   standaardAflopend,
   type Filters,
   type SorteerKolom,
 } from "@/lib/filters";
-import { KOLOMMEN, POSITIE_NAMEN, formatteer, waarde, type Statistiek } from "@/lib/statistieken";
+import {
+  KOLOMMEN,
+  MIN_MINUTEN_VERGELIJKING,
+  POSITIE_NAMEN,
+  formatteer,
+  waarde,
+  type Statistiek,
+} from "@/lib/statistieken";
 import { useUrlFilters } from "./gebruik-url-filters";
-import { PijlOmlaag, PijlRechts, PijlenOpNeer, Vergrootglas, Volgorde } from "./iconen";
+import { PijlOmlaag, PijlRechts, PijlenOpNeer, Schuifjes, Vergrootglas, Volgorde, Waarschuwing } from "./iconen";
 import { Nieuws } from "./nieuws";
 import { Schakelaar } from "./schakelaar";
 import { SegmentKeuze } from "./segment-keuze";
+import { Sheet } from "./sheet";
 import { SpelerSheet } from "./speler-sheet";
 import { lijnErboven } from "./stijl";
 
@@ -58,6 +67,7 @@ function ScoutingTabel({
   const [zoekterm, setZoekterm] = useState("");
   const [toonAlles, setToonAlles] = useState(false);
   const [gekozenId, setGekozenId] = useState<number | null>(null); // de speler waarvan de kaart open is
+  const [filtersOpen, setFiltersOpen] = useState(false); // de filters op een gsm
 
   // Alle teams voor de keuzelijst, alfabetisch
   const teams = useMemo(() => {
@@ -92,6 +102,61 @@ function ScoutingTabel({
   const zichtbaar = toonAlles ? resultaat : resultaat.slice(0, MAX_RIJEN);
   const gekozen = spelers.find((s) => s.id === gekozenId) ?? null;
   const gefilterd = isGefilterd(filters, zoekterm);
+  const aantalAan = aantalFilters(filters);
+  // Per 90 met weinig minuten: één goede invalbeurt geeft dan al een topcijfer
+  const per90Onbetrouwbaar = per90 && (filters.minMinuten ?? 0) < MIN_MINUTEN_VERGELIJKING;
+
+  // Team, leeftijd, minuten en beschikbaarheid. Op een computer staan ze op de pagina,
+  // op een gsm in een sheet: zo zie je daar meteen spelers.
+  function filterVelden(achtergrond: string) {
+    return (
+      <>
+        <FilterRij label="Team" achtergrond={achtergrond}>
+          <select
+            value={filters.team}
+            onChange={(e) => onWijzig({ team: e.target.value })}
+            className={`${waardeStijl} appearance-none truncate [text-align-last:right]`}
+          >
+            <option value="ALLE">Alle teams</option>
+            {teams.map(([afkorting, naam]) => (
+              <option key={afkorting} value={afkorting}>
+                {naam}
+              </option>
+            ))}
+          </select>
+          <PijlenOpNeer className="pointer-events-none size-3.5 shrink-0 text-secundair" />
+        </FilterRij>
+        <FilterRij label="Max. leeftijd" achtergrond={achtergrond}>
+          <input
+            type="number"
+            inputMode="numeric"
+            min={15}
+            max={45}
+            value={filters.maxLeeftijd ?? ""}
+            onChange={(e) => onWijzig({ maxLeeftijd: naarGetal(e.target.value) })}
+            placeholder="Geen"
+            className={waardeStijl}
+          />
+        </FilterRij>
+        <FilterRij label="Min. minuten" achtergrond={achtergrond}>
+          <input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            step={90}
+            value={filters.minMinuten ?? ""}
+            onChange={(e) => onWijzig({ minMinuten: naarGetal(e.target.value) })}
+            placeholder="0"
+            className={waardeStijl}
+          />
+        </FilterRij>
+        <FilterRij label="Alleen beschikbaar" uitleg="Verbergt wie geblesseerd of geschorst is" achtergrond={achtergrond}>
+          <span className="flex-1" />
+          <Schakelaar aan={filters.alleenFit} onWissel={(alleenFit) => onWijzig({ alleenFit })} />
+        </FilterRij>
+      </>
+    );
+  }
 
   // Op een gsm toont elke rij één cijfer: het cijfer waarop je sorteert
   const getoond: Statistiek =
@@ -132,57 +197,31 @@ function ScoutingTabel({
       </div>
 
       {/* De lijntjes tussen de vakjes zijn de achtergrond die door de kiertjes (gap-px) schijnt */}
-      <div className="mt-3 grid gap-px overflow-hidden rounded-xl bg-lijn sm:grid-cols-2 lg:grid-cols-4">
-        <FilterRij label="Team">
-          <select
-            value={filters.team}
-            onChange={(e) => onWijzig({ team: e.target.value })}
-            className={`${waardeStijl} appearance-none truncate [text-align-last:right]`}
-          >
-            <option value="ALLE">Alle teams</option>
-            {teams.map(([afkorting, naam]) => (
-              <option key={afkorting} value={afkorting}>
-                {naam}
-              </option>
-            ))}
-          </select>
-          <PijlenOpNeer className="pointer-events-none size-3.5 shrink-0 text-secundair" />
-        </FilterRij>
-        <FilterRij label="Max. leeftijd">
-          <input
-            type="number"
-            inputMode="numeric"
-            min={15}
-            max={45}
-            value={filters.maxLeeftijd ?? ""}
-            onChange={(e) => onWijzig({ maxLeeftijd: naarGetal(e.target.value) })}
-            placeholder="Geen"
-            className={waardeStijl}
-          />
-        </FilterRij>
-        <FilterRij label="Min. minuten">
-          <input
-            type="number"
-            inputMode="numeric"
-            min={0}
-            step={90}
-            value={filters.minMinuten ?? ""}
-            onChange={(e) => onWijzig({ minMinuten: naarGetal(e.target.value) })}
-            placeholder="0"
-            className={waardeStijl}
-          />
-        </FilterRij>
-        <FilterRij label="Alleen beschikbaar" uitleg="Verbergt wie geblesseerd of geschorst is">
-          <span className="flex-1" />
-          <Schakelaar aan={filters.alleenFit} onWissel={(alleenFit) => onWijzig({ alleenFit })} />
-        </FilterRij>
+      <div className="mt-3 hidden gap-px overflow-hidden rounded-xl bg-lijn md:grid md:grid-cols-2 lg:grid-cols-4">
+        {filterVelden("bg-kaart")}
       </div>
 
-      {/* ---- Weergave, aantal en sorteren ---- */}
-      <div className="mt-3 flex flex-col gap-3 md:mt-5 md:flex-row md:items-center md:justify-between">
+      {/* Op een gsm: een knop voor de filters, naast Totaal / Per 90 */}
+      <div className="mt-3 flex gap-3 md:hidden">
+        <button
+          type="button"
+          onClick={() => setFiltersOpen(true)}
+          aria-label={aantalAan > 0 ? `Filters, ${aantalAan} aan` : "Filters"}
+          className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-[9px] px-3 text-[13px] font-semibold outline-none transition-opacity focus-visible:ring-2 focus-visible:ring-accent/50 active:opacity-60 ${
+            aantalAan > 0 ? "bg-accent-zacht text-accent" : "bg-vulling"
+          }`}
+        >
+          <Schuifjes className="size-4" />
+          Filters
+          {aantalAan > 0 && (
+            <span className="grid size-5 place-items-center rounded-full bg-accent text-[11px] tabular-nums text-op-accent">
+              {aantalAan}
+            </span>
+          )}
+        </button>
         <SegmentKeuze
           label="Weergave"
-          className="md:order-2 md:w-64"
+          className="flex-1"
           opties={[
             { waarde: false, label: "Totaal" },
             { waarde: true, label: "Per 90 min" },
@@ -190,17 +229,33 @@ function ScoutingTabel({
           gekozen={per90}
           onKies={(keuze) => onWijzig({ per90: keuze })}
         />
+      </div>
+
+      {/* ---- Weergave, aantal en sorteren ---- */}
+      <div className="mt-3 flex flex-col gap-3 md:mt-5 md:flex-row md:items-center md:justify-between">
+        <div className="hidden md:order-2 md:block md:w-64">
+          <SegmentKeuze
+            label="Weergave"
+            opties={[
+              { waarde: false, label: "Totaal" },
+              { waarde: true, label: "Per 90 min" },
+            ]}
+            gekozen={per90}
+            onKies={(keuze) => onWijzig({ per90: keuze })}
+          />
+        </div>
 
         <div className="flex min-h-9 items-center justify-between gap-3 px-1">
           <p className="flex items-center gap-3 text-[13px] font-semibold text-secundair">
             <span aria-live="polite" className="whitespace-nowrap">
               {resultaat.length} {resultaat.length === 1 ? "speler" : "spelers"}
             </span>
+            {/* Op een gsm staat "Wis filters" in de filtersheet: hier is daar geen plaats voor */}
             {gefilterd && (
               <button
                 type="button"
                 onClick={wisFilters}
-                className="rounded text-accent outline-none transition-opacity focus-visible:ring-2 focus-visible:ring-accent/50 active:opacity-50"
+                className="hidden whitespace-nowrap rounded text-accent md:inline outline-none transition-opacity focus-visible:ring-2 focus-visible:ring-accent/50 active:opacity-50"
               >
                 Wis filters
               </button>
@@ -241,6 +296,23 @@ function ScoutingTabel({
           </div>
         </div>
       </div>
+
+      {per90Onbetrouwbaar && (
+        <p className="mb-2 flex gap-1.5 px-1 text-[13px] leading-snug text-waarschuwing">
+          <Waarschuwing className="mt-px size-3.5 shrink-0" />
+          <span>
+            Met minder dan {MIN_MINUTEN_VERGELIJKING} minuten zeggen cijfers per 90 weinig: één goede invalbeurt geeft
+            al een topcijfer.{" "}
+            <button
+              type="button"
+              onClick={() => onWijzig({ minMinuten: MIN_MINUTEN_VERGELIJKING })}
+              className="rounded font-semibold underline underline-offset-2 outline-none focus-visible:ring-2 focus-visible:ring-accent/50 active:opacity-50"
+            >
+              Zet op {MIN_MINUTEN_VERGELIJKING}
+            </button>
+          </span>
+        </p>
+      )}
 
       <div className="mt-1.5">
         {resultaat.length === 0 ? (
@@ -356,6 +428,33 @@ function ScoutingTabel({
       </p>
 
       <SpelerSheet speler={gekozen} onSluit={() => setGekozenId(null)} />
+
+      {/* De filters op een gsm. Het aantal spelers op de knop verandert mee terwijl je kiest. */}
+      <Sheet
+        open={filtersOpen}
+        onSluit={() => setFiltersOpen(false)}
+        titelId="filters-titel"
+        sluitTekst="Klaar"
+        kop={
+          <h2 id="filters-titel" className="pt-0.5 text-[22px] font-bold tracking-[-0.02em]">
+            Filters
+          </h2>
+        }
+      >
+        <div className="grid gap-px overflow-hidden rounded-xl bg-lijn">{filterVelden("bg-vlak")}</div>
+        {aantalAan > 0 && (
+          <button type="button" onClick={wisFilters} className="mt-3 h-11 w-full text-[17px] font-semibold text-accent outline-none active:opacity-50">
+            Wis filters
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={() => setFiltersOpen(false)}
+          className="mt-3 flex h-12 w-full items-center justify-center rounded-xl bg-accent text-[17px] font-semibold text-op-accent outline-none transition-[opacity,transform] duration-100 focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:ring-offset-2 focus-visible:ring-offset-kaart active:scale-[0.98] active:opacity-80"
+        >
+          Toon {resultaat.length} {resultaat.length === 1 ? "speler" : "spelers"}
+        </button>
+      </Sheet>
     </section>
   );
 }
@@ -382,11 +481,21 @@ const scheidingslijn = "shadow-[inset_-1px_0_0_var(--color-lijn)] lg:shadow-none
 const waardeStijl =
   "min-w-0 flex-1 bg-transparent text-right text-[17px] tabular-nums text-secundair outline-none placeholder:text-secundair sm:text-[15px]";
 
-function FilterRij({ label, uitleg, children }: { label: string; uitleg?: string; children: ReactNode }) {
+function FilterRij({
+  label,
+  uitleg,
+  achtergrond,
+  children,
+}: {
+  label: string;
+  uitleg?: string;
+  achtergrond: string; // bg-kaart op de pagina, bg-vlak in de sheet
+  children: ReactNode;
+}) {
   return (
     <label
       title={uitleg}
-      className="flex h-11 items-center gap-2 bg-kaart pl-4 pr-3 transition-colors has-focus-visible:bg-kaart-hover"
+      className={`flex h-11 items-center gap-2 pl-4 pr-3 transition-colors has-focus-visible:bg-kaart-hover ${achtergrond}`}
     >
       <span className="shrink-0 text-[17px] sm:text-[15px]">{label}</span>
       {children}

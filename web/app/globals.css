@@ -93,6 +93,20 @@ html {
   scrollbar-gutter: stable; /* de pagina verspringt niet als de scrollbalk verdwijnt */
 }
 
+/* Lang drukken op een knop selecteert de tekst niet, en een tik reageert meteen (geen dubbeltik-zoom) */
+button,
+[role="switch"] {
+  -webkit-user-select: none;
+  user-select: none;
+}
+a,
+button,
+input,
+select,
+label {
+  touch-action: manipulation;
+}
+
 /* Geen pijltjes in getalvakjes: je typt gewoon een getal */
 input[type="number"] {
   appearance: textfield;

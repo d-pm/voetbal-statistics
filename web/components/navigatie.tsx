@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useSelectedLayoutSegment } from "next/navigation";
 import { Huis, Kalender, Persoon } from "./iconen";
+import { useLaatsteZoekopdracht } from "./laatste-zoekopdracht";
 
 // "segment" is het eerste stuk van het adres: bij /spelers/123 is dat "spelers", bij / is het null
 const PAGINAS = [
@@ -22,6 +23,10 @@ export function NavigatieZonderRoute() {
 }
 
 function Balken({ actief }: { actief: string | null | undefined }) {
+  // Net zoals een tab op een iPhone onthoudt de tab "Spelers" waar je was
+  const spelers = useLaatsteZoekopdracht();
+  const adres = (href: string) => (href === "/spelers" ? spelers : href);
+
   return (
     <>
       {/* Bovenbalk: doorschijnend, de pagina schuift er wazig onderdoor */}
@@ -43,7 +48,7 @@ function Balken({ actief }: { actief: string | null | undefined }) {
               return (
                 <Link
                   key={pagina.href}
-                  href={pagina.href}
+                  href={adres(pagina.href)}
                   aria-current={hier ? "page" : undefined}
                   className={`rounded-full px-3 py-1.5 text-[14px] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent/50 active:opacity-60 ${
                     hier ? "bg-vulling font-semibold text-primair" : "font-medium text-secundair hover:text-primair"
@@ -67,7 +72,7 @@ function Balken({ actief }: { actief: string | null | undefined }) {
           return (
             <Link
               key={href}
-              href={href}
+              href={adres(href)}
               aria-current={hier ? "page" : undefined}
               className={`flex h-[52px] select-none flex-col items-center justify-center gap-0.5 text-[10px] font-medium outline-none transition-opacity active:opacity-50 ${
                 hier ? "text-accent" : "text-secundair"

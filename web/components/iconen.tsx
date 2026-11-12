@@ -141,3 +141,30 @@ export function Kalender(props: IcoonProps) {
     </GrootIcoon>
   );
 }
+
+export function Schuifjes(props: IcoonProps) {
+  return (
+    <Icoon {...props}>
+      <path d="M2.5 4.5h6m3 0h2M2.5 11.5h2m3 0h6" />
+      <circle cx="10" cy="4.5" r="1.5" />
+      <circle cx="6" cy="11.5" r="1.5" />
+    </Icoon>
+  );
+}
+
+export function Delen(props: IcoonProps) {
+  return (
+    <Icoon {...props}>
+      <path d="M8 1.75v8.5M5 4.5l3-2.75 3 2.75" />
+      <path d="M5.5 7H4.25a1 1 0 0 0-1 1v5.25a1 1 0 0 0 1 1h7.5a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1H10.5" />
+    </Icoon>
+  );
+}
+
+export function Vinkje(props: IcoonProps) {
+  return (
+    <Icoon {...props}>
+      <path d="m3.5 8.5 3 3 6-7" />
+    </Icoon>
+  );
+}

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { DeelKnop } from "@/components/deel-knop";
 import { Scouting, ScoutingBijLaden } from "@/components/scouting-tabel";
 import { haalCompetitieOp } from "@/lib/competitie";
 import { toonDatumEnUur } from "@/lib/datum";
@@ -20,9 +21,13 @@ export default async function ScoutingPagina() {
           Premier League {seizoen}
           {huidigeSpeeldag !== null && ` · na speeldag ${huidigeSpeeldag}`}
         </p>
-        <h1 className="mt-1 text-[34px] font-bold leading-[1.1] tracking-[-0.025em] sm:text-5xl sm:tracking-[-0.03em]">
-          Scoutingdatabase
-        </h1>
+        <div className="mt-1 flex items-center justify-between gap-3">
+          <h1 className="text-[34px] font-bold leading-[1.1] tracking-[-0.025em] sm:text-5xl sm:tracking-[-0.03em]">
+            Scoutingdatabase
+          </h1>
+          {/* De filters staan in het adres: wie de link krijgt, ziet dezelfde lijst */}
+          <DeelKnop />
+        </div>
         <p className="mt-3 max-w-2xl text-[17px] leading-[1.45] text-secundair">
           Zoek spelers die passen bij de opdracht van je club. Met Per 90 vergelijk je eerlijk, ook als iemand minder
           speelde. Tik op een speler voor alle cijfers.

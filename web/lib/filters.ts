@@ -94,6 +94,16 @@ export function isGefilterd(filters: Filters, zoekterm: string) {
   );
 }
 
+/** Hoeveel van de verborgen filters (team, leeftijd, minuten, beschikbaar) staan er anders dan standaard? */
+export function aantalFilters(filters: Filters) {
+  return [
+    filters.team !== STANDAARD.team,
+    filters.maxLeeftijd !== STANDAARD.maxLeeftijd,
+    filters.minMinuten !== STANDAARD.minMinuten,
+    filters.alleenFit !== STANDAARD.alleenFit,
+  ].filter(Boolean).length;
+}
+
 /** "Ødegaard" -> "odegaard": zo vind je een speler ook als je de accenten niet typt. */
 export function zonderAccenten(tekst: string) {
   return tekst
