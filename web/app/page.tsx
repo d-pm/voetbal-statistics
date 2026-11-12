@@ -11,16 +11,16 @@ import { haalWedstrijdenOp } from "@/lib/wedstrijden";
 
 const STAPPEN = [
   {
-    titel: "De club geeft een opdracht",
-    tekst: "Elke speeldag zoekt de club iets anders. Bijvoorbeeld een jonge verdediger die veel ballen afpakt.",
+    titel: "Je krijgt je eigen opdracht",
+    tekst: "Elke speeldag zoekt de club iets anders, en elke scout krijgt een andere opdracht. Bijvoorbeeld een verdediger van hoogstens 21 die ballen afpakt.",
   },
   {
     titel: "Jij raadt één speler aan",
     tekst: "Zoek in de echte cijfers wie past, en let op blessures. Kiezen kan tot de deadline van de speeldag.",
   },
   {
-    titel: "De speeldag beslist",
-    tekst: "Wat je speler daarna echt doet, levert punten op. Speelt je keuze niet, dan krijg je niets.",
+    titel: "Je keuze wordt beoordeeld",
+    tekst: "Na de speeldag krijg je een scoutscore: hoeveel procent van alle spelers die pasten, deed het slechter dan jouw keuze.",
   },
 ];
 
@@ -44,8 +44,8 @@ export default async function Startpagina() {
             {competitie.spelers.length} spelers.
           </p>
           <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3">
-            <Link href="/spelers" className={hoofdknop}>
-              Begin met scouten
+            <Link href="/opdracht" className={hoofdknop}>
+              Naar je opdracht
             </Link>
             <a href="#zo-werkt-het" className={`text-[17px] ${tekstlink}`}>
               Zo werkt het spel
@@ -55,6 +55,12 @@ export default async function Startpagina() {
 
         {volgende && (
           <section aria-labelledby="deadline-titel" className="rounded-[22px] bg-kaart p-5">
+            <Link
+              href="/opdracht"
+              className={`float-right text-[15px] ${tekstlink}`}
+            >
+              Kies je speler
+            </Link>
             <p className="text-[13px] font-semibold text-secundair">Volgende deadline</p>
             <h2 id="deadline-titel" className="mt-0.5 text-[22px] font-bold tracking-[-0.02em]">
               Speeldag {volgende.nr}
@@ -89,11 +95,11 @@ export default async function Startpagina() {
       {/* ---- Oefenopdrachten ---- */}
       <section aria-labelledby="oefenen-titel" className="mt-12 sm:mt-16">
         <h2 id="oefenen-titel" className="text-[28px] font-bold tracking-[-0.025em]">
-          Oefen op een opdracht
+          Snel zoeken
         </h2>
         <p className="mt-1 max-w-2xl text-[17px] leading-[1.45] text-secundair">
-          Zo ziet een opdracht van een club eruit. Bij elke opdracht staan de drie spelers die er nu het best bij
-          passen.
+          Vier zoekopdrachten die vaak terugkomen, met de drie spelers die er nu het best bij passen. Handig als je je
+          eigen opdracht moet oplossen.
         </p>
         <div className="mt-5 grid gap-4 md:grid-cols-2">
           {OPDRACHTEN.map((opdracht) => (
@@ -122,7 +128,7 @@ export default async function Startpagina() {
           ))}
         </ol>
         <p className="mt-4 px-1 text-[13px] leading-relaxed text-secundair">
-          Scouten kan nu al. Aanraden, punten en de ranglijst met je vrienden zijn in de maak.
+          Je keuzes worden voorlopig in je browser bewaard. Een ranglijst met je vrienden komt later.
         </p>
       </section>
     </main>

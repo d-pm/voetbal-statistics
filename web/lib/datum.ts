@@ -37,3 +37,21 @@ export function toonUur(tijdstip: string) {
 export function toonDatumEnUur(tijdstip: string) {
   return datumEnUur.format(new Date(tijdstip));
 }
+
+/**
+ * "2001-03-24" -> 25. Geeft null terug als de geboortedatum onbekend is.
+ * We rekenen in UTC, zodat de server en elke browser altijd hetzelfde antwoord geven.
+ */
+export function berekenLeeftijd(geboortedatum: string | null, vandaag: Date): number | null {
+  if (!geboortedatum) {
+    return null;
+  }
+  const [jaar, maand, dag] = geboortedatum.split("-").map(Number);
+  let leeftijd = vandaag.getUTCFullYear() - jaar;
+
+  const huidigeMaand = vandaag.getUTCMonth() + 1; // getUTCMonth() telt vanaf 0
+  if (huidigeMaand < maand || (huidigeMaand === maand && vandaag.getUTCDate() < dag)) {
+    leeftijd -= 1; // dit jaar nog niet jarig geweest
+  }
+  return leeftijd;
+}

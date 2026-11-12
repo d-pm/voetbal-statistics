@@ -1,20 +1,10 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
-
-// De klok van de bezoeker, in hele minuten. useSyncExternalStore laat React opnieuw
-// tekenen telkens als de minuut verandert. Op de server kennen we de klok van de
-// bezoeker niet: daar is het antwoord null en tonen we streepjes.
-function elkeHalveMinuut(seintje: () => void) {
-  const wekker = setInterval(seintje, 30_000);
-  return () => clearInterval(wekker);
-}
-const minutenNu = () => Math.floor(Date.now() / 60_000);
-const opDeServer = () => null;
+import { useMinutenNu } from "./klok";
 
 /** Telt af naar een tijdstip: "8 dagen 23 uur 12 min". */
 export function Aftellen({ tot, voorbij }: { tot: string; voorbij: string }) {
-  const nu = useSyncExternalStore(elkeHalveMinuut, minutenNu, opDeServer);
+  const nu = useMinutenNu();
   const rest = nu === null ? null : Math.floor(new Date(tot).getTime() / 60_000) - nu;
 
   if (rest !== null && rest <= 0) {

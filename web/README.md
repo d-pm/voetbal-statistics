@@ -1,15 +1,26 @@
 # Website (Next.js)
 
-De website van het spel. Er zijn vier soorten pagina's:
+De website van het spel. Dit zijn de pagina's:
 
 | Adres | Wat zie je |
 |---|---|
-| `/` | de startpagina: de volgende deadline, oefenopdrachten en uitleg over het spel |
+| `/` | de startpagina: de volgende deadline, snelle zoekopdrachten en uitleg over het spel |
+| `/opdracht` | **het spel**: je scoutprofiel, je eigen opdracht voor de volgende speeldag, en oefenopdrachten op afgelopen speeldagen |
+| `/opdracht/11` | één opdracht spelen: een speler kiezen en je beoordeling zien |
 | `/spelers` | de **scoutingdatabase**: alle Premier League-spelers, met filters en sorteren |
 | `/spelers/223094` | het **profiel** van één speler: cijfers per wedstrijd, een grafiek en een vergelijking met spelers op dezelfde positie |
 | `/speeldag` en `/speeldag/12` | de wedstrijden en uitslagen van een speeldag |
 
-Het spel zelf (een speler aanraden, punten, de ranglijst met vrienden) komt later. Daarvoor is eerst een database met login nodig (Supabase).
+## Het spel
+
+1. **Elke scout krijgt een eigen opdracht.** Bij je eerste bezoek krijg je een eigen scoutnummer. Daarmee gooit `maakOpdracht()` in `lib/spel.ts` de dobbelsteen: welke soort speler de club zoekt, en of er een leeftijdsgrens is of de club geen speler van een topclub kan betalen. Twee vrienden krijgen dus meestal een andere opdracht, maar jij krijgt voor dezelfde speeldag altijd dezelfde. Je krijgt nooit twee keer na elkaar dezelfde soort.
+2. **Je raadt één speler aan** vóór de deadline. Tot dan kun je je keuze nog wijzigen.
+3. **Je keuze wordt beoordeeld** na de speeldag, door `beoordeel()`. Je speler krijgt punten volgens de regels van de opdracht (dezelfde als in `data/puntentelling.py`). Daarna vergelijken we met álle spelers die bij de opdracht pasten: **scoutscore 80** betekent dat je keuze het beter deed dan 80% van hen. Zo kun je verschillende opdrachten eerlijk vergelijken. Speelde je speler niet, dan is je score 0.
+4. **Je rang** (Stagiair, Jeugdscout, Scout, Hoofdscout, Technisch directeur) hangt af van je gemiddelde scoutscore, vanaf 3 opdrachten.
+
+**Oefenen:** op een afgelopen speeldag zie je alleen de cijfers van vóór die speeldag (`lib/speeldagspel.ts` telt de speeldagen ervoor op). Je keuze is meteen definitief, en je ziet meteen je score.
+
+**Waar wordt dit bewaard?** Voorlopig in je browser (`components/scout-opslag.ts`, met localStorage). Op een ander toestel begin je dus opnieuw. Een ranglijst met vrienden en een account dat je overal meeneemt, komen er met Supabase. Dan verhuizen de keuzes naar de database, en controleert de database ook de deadline.
 
 ## Starten
 
@@ -37,6 +48,8 @@ Wil je zien hoe de site op een gsm werkt? Druk in de browser op **F12** en daarn
 |---|---|
 | `app/layout.tsx` | wat rond elke pagina staat: de navigatie |
 | `app/page.tsx` | de startpagina |
+| `app/opdracht/page.tsx`, `app/opdracht/[nr]/page.tsx` | het overzicht van je opdrachten, en één opdracht spelen |
+| `app/icon.svg`, `app/apple-icon.tsx`, `app/opengraph-image.tsx` | het logo als icoon in je browser, op je iPhone-beginscherm, en de afbeelding als je een link deelt |
 | `app/spelers/page.tsx` | de scoutingdatabase |
 | `app/spelers/[id]/page.tsx` | het spelersprofiel. `[id]` is de plek in het adres waar de code van de speler staat. |
 | `app/speeldag/page.tsx`, `app/speeldag/[nr]/page.tsx` | de speeldag van nu, en een speeldag naar keuze |
@@ -53,7 +66,10 @@ Wil je zien hoe de site op een gsm werkt? Druk in de browser op **F12** en daarn
 | `lib/profiel.ts` | alles voor het profiel van één speler |
 | `lib/statistieken.ts` | welke cijfers er zijn, hoe ze heten, en het vergelijken met andere spelers |
 | `lib/filters.ts` | de filters van de scoutingdatabase, en hoe ze in de URL staan |
-| `lib/opdrachten.ts` | de oefenopdrachten op de startpagina |
+| `lib/spel.ts` | **de spelregels**: de soorten opdrachten, je opdracht maken, punten tellen en je keuze beoordelen |
+| `lib/speeldagspel.ts` | de cijfers van vóór een speeldag, en de uitslag ervan |
+| `lib/stand.ts` | de stand van de competitie, uitgerekend uit de uitslagen (voor de topclubs) |
+| `lib/opdrachten.ts` | de snelle zoekopdrachten op de startpagina |
 | `lib/datum.ts` | datums en uren tonen in het Nederlands en in Belgische tijd |
 
 **`components/`: de bouwstenen van de pagina's.**
@@ -61,6 +77,12 @@ Wil je zien hoe de site op een gsm werkt? Druk in de browser op **F12** en daarn
 | Bestand | Wat doet het |
 |---|---|
 | `navigatie.tsx` | de bovenbalk, en op een gsm de tabbalk onderaan |
+| `logo.tsx` | het logo: een vergrootglas met de middencirkel van een voetbalveld |
+| `opdracht-overzicht.tsx` | je scoutprofiel, je echte opdracht en de lijst met oefeningen |
+| `opdracht-spel.tsx` | één opdracht: kiezen, wachten en je beoordeling |
+| `opdrachtkaart.tsx` | de kaart met wat de club zoekt en hoe je punten verdient |
+| `scout-opslag.ts` | bewaart je scoutnummer, je keuzes en je scores in de browser |
+| `klok.ts` | de klok van de bezoeker, om te weten of een deadline voorbij is |
 | `scouting-tabel.tsx` | de filters, de lijst (gsm) en de tabel (tablet en computer) |
 | `gebruik-url-filters.ts` | houdt de filters bij en zet ze in de URL |
 | `laatste-zoekopdracht.ts`, `terug-naar-spelers.tsx` | onthouden je laatste zoekopdracht, zodat "‹ Spelers" en de tab je daar terugbrengen |
@@ -135,4 +157,5 @@ GitHub draait beide bij elke pull request die iets in `web/` verandert. Je ziet 
 5. **Nieuwe opdracht:** voeg in `lib/opdrachten.ts` een vijfde oefenopdracht toe, bv. "Verdediger die meevoetbalt" (verdedigers, gesorteerd op verwachte assists).
 6. **Nieuwe kolom:** voeg G+A (goals + assists) toe. Tip: begin bij het type `Speler` in `lib/competitie.ts`, en voeg daarna een regel toe aan `KOLOMMEN` in `lib/statistieken.ts`.
 7. **Uitdaging:** toon op de speeldagpagina bij elke afgelopen wedstrijd de winnaar in het vet.
-8. **Grote uitdaging:** maak een pagina `/stand` met de rangschikking, berekend uit de uitslagen in `lib/wedstrijden.ts` (3 punten voor winst, 1 voor gelijk). Voeg ze ook toe aan de navigatie.
+8. **Spelregel aanpassen:** maak de kans op een keeperopdracht kleiner, of voeg een leeftijdsgrens van 19 jaar toe. *(`SOORT_KANSEN` en `maakOpdracht()` in `lib/spel.ts`)*
+9. **Grote uitdaging:** maak een pagina `/stand` met de rangschikking van de competitie. Het rekenwerk doet `berekenStand()` in `lib/stand.ts` al: jij maakt de tabel. Voeg de pagina ook toe aan de navigatie.

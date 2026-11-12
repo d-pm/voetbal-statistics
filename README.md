@@ -4,7 +4,7 @@ Een scoutingspel op basis van echte voetbalstatistieken uit de Premier League, C
 
 Je bent scout voor een club en krijgt opdrachten, bijvoorbeeld *"we zoeken een jonge verdediger die veel ballen afpakt"*. Je raadt spelers aan en scoort punten op basis van hoe die spelers **echt presteren**. Je speelt tegen vrienden in je eigen competitie met een ranglijst.
 
-**Status:** scouten kan al. De website heeft een startpagina, de scoutingdatabase, een profiel per speler en de speeldagen. Het spel zelf (aanraden, punten, ranglijst) is de volgende stap. Zie [PLAN.md](PLAN.md) voor de planning.
+**Status:** je kunt spelen. Elke scout krijgt een eigen opdracht per speeldag, raadt een speler aan en krijgt na de speeldag een scoutscore. Oefenen kan op de afgelopen speeldagen. Wat nog komt: accounts en een ranglijst met vrienden. Zie [PLAN.md](PLAN.md) voor de planning.
 
 Dit is een studentenproject om te leren werken met Python, SQL, Next.js en voetbaldata.
 
