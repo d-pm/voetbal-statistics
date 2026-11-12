@@ -173,12 +173,12 @@ Elke tabel heeft een eigen `id`. Per bron bewaren we het vaste nummer in een eig
 ### Sessie 3: scoutingdatabase
 
 - **Data:** laad de stats per wedstrijd van alle gespeelde speeldagen (`/api/event/{gw}/live/`). Maak een view met totalen en cijfers per 90 minuten.
-- **Web:** maak de scoutingpagina: een tabel met filters en sorteren.
+- **Web:** maak de scoutingpagina: een tabel met filters en sorteren. *Gedaan. De filters staan in de URL, zodat je een zoekopdracht kunt delen. De data komt voorlopig rechtstreeks van de FPL API, maar alleen op de server en hoogstens één keer per uur. Zodra Supabase er is, komt ze uit onze eigen database.*
 
 ### Sessie 4: online zetten
 
 - **Data:** maak een GitHub Actions-workflow die `ingest.py` elke dag automatisch draait, bijvoorbeeld om 6u en om 23u. Zet de sleutels in GitHub Secrets.
-- **Web:** maak de spelerspagina en zet de site online op Vercel.
+- **Web:** maak de spelerspagina en zet de site online op Vercel. *De spelerspagina is gedaan (`/spelers/[id]`), samen met een startpagina en een speeldagpagina. Online zetten moet nog: zie de stappen in de pull request.*
 - **Mijlpaal:** de scoutingsite staat online en houdt zichzelf up-to-date.
 
 ### Sessie 5: het spel, deel 1
