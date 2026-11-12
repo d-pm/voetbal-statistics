@@ -1,4 +1,5 @@
 import { cacheLife } from "next/cache";
+import { berekenLeeftijd } from "./datum";
 import { haalOp, type FplBasisdata, type FplPositie } from "./fpl";
 
 export type Positie = FplPositie;
@@ -15,6 +16,7 @@ export type Speler = {
   teamNaam: string;
   positie: Positie;
   leeftijd: number | null;
+  geboortedatum: string | null; // "2001-03-24", nodig om de leeftijd op een andere dag te kennen
   beschikbaarheid: Beschikbaarheid;
   kans: number | null; // kans in % dat hij de volgende speeldag speelt, als FPL die kent
   nieuws: string; // blessures, schorsingen, ... (in het Engels, zoals FPL het geeft)
@@ -83,6 +85,7 @@ export async function haalCompetitieOp(): Promise<Competitie> {
         teamNaam: team.name,
         positie: posities.get(p.element_type)!,
         leeftijd: berekenLeeftijd(p.birth_date, nu),
+        geboortedatum: p.birth_date,
         beschikbaarheid: p.status === "a" ? "fit" : p.status === "d" ? "twijfel" : "afwezig",
         kans: p.chance_of_playing_next_round,
         nieuws: p.news,
@@ -111,19 +114,4 @@ export async function haalCompetitieOp(): Promise<Competitie> {
     spelers,
     bijgewerktOp: nu.toISOString(),
   };
-}
-
-/** "2001-03-24" -> 25. Geeft null terug als de geboortedatum onbekend is. */
-export function berekenLeeftijd(geboortedatum: string | null, vandaag: Date): number | null {
-  if (!geboortedatum) {
-    return null;
-  }
-  const [jaar, maand, dag] = geboortedatum.split("-").map(Number);
-  let leeftijd = vandaag.getFullYear() - jaar;
-
-  const huidigeMaand = vandaag.getMonth() + 1; // getMonth() telt vanaf 0
-  if (huidigeMaand < maand || (huidigeMaand === maand && vandaag.getDate() < dag)) {
-    leeftijd -= 1; // dit jaar nog niet jarig geweest
-  }
-  return leeftijd;
 }

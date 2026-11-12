@@ -168,3 +168,13 @@ export function Vinkje(props: IcoonProps) {
     </Icoon>
   );
 }
+
+export function Doelwit(props: IcoonProps) {
+  return (
+    <GrootIcoon {...props}>
+      <circle cx="12" cy="12" r="8.25" />
+      <circle cx="12" cy="12" r="4.25" />
+      <circle cx="12" cy="12" r="0.75" fill="currentColor" />
+    </GrootIcoon>
+  );
+}

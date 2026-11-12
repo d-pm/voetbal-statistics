@@ -14,6 +14,8 @@ Competities: Premier League, Championship en League One, in die volgorde toegevo
 
 ### De kern: de weekopdracht
 
+> **Gekozen (november 2026):** iedereen krijgt een **eigen** opdracht in plaats van dezelfde. Om toch eerlijk te vergelijken, krijg je een **scoutscore** (0-100): hoeveel procent van de spelers die bij jouw opdracht pasten, deed het slechter dan je keuze. Gebouwd in `web/lib/spel.ts`. De punten per statistiek blijven die uit de tabel hieronder. Je voortgang staat voorlopig in de browser, tot er accounts zijn.
+
 1. Elke speelweek (maandag t/m zondag) krijgt **iedereen dezelfde opdracht**, bijvoorbeeld:
    > *"We zoeken een verdediger, max. 25 jaar, die veel ballen afpakt."*
 2. Je raadt **één speler** aan vóór de **deadline** (bijvoorbeeld 1,5 uur voor de eerste wedstrijd van die week).

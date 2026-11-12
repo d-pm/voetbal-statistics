@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { useSelectedLayoutSegment } from "next/navigation";
-import { Huis, Kalender, Persoon } from "./iconen";
+import { Doelwit, Huis, Kalender, Persoon } from "./iconen";
 import { useLaatsteZoekopdracht } from "./laatste-zoekopdracht";
+import { Logo } from "./logo";
 
 // "segment" is het eerste stuk van het adres: bij /spelers/123 is dat "spelers", bij / is het null
 const PAGINAS = [
   { href: "/", segment: null, label: "Overzicht", Icoon: Huis },
+  { href: "/opdracht", segment: "opdracht", label: "Opdracht", Icoon: Doelwit },
   { href: "/spelers", segment: "spelers", label: "Spelers", Icoon: Persoon },
   { href: "/speeldag", segment: "speeldag", label: "Speeldag", Icoon: Kalender },
 ];
@@ -33,12 +35,7 @@ function Balken({ actief }: { actief: string | null | undefined }) {
       <header className="navigatiebalk materiaal sticky top-0 z-30">
         <div className="mx-auto flex h-12 w-full max-w-6xl items-center gap-6 px-4 sm:px-6">
           <Link href="/" className="flex items-center gap-2.5 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-accent/50">
-            <span
-              aria-hidden
-              className="grid size-7 place-items-center rounded-[7px] bg-linear-to-b from-[#34c759] to-[#248a3d] text-[11px] font-bold tracking-[0.02em] text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.3)]"
-            >
-              VS
-            </span>
+            <Logo className="size-7 drop-shadow-[0_1px_1px_rgb(0_0_0/0.12)]" />
             <span className="text-[17px] font-semibold tracking-[-0.022em]">Voetbal Scout</span>
           </Link>
 
@@ -65,7 +62,7 @@ function Balken({ actief }: { actief: string | null | undefined }) {
       {/* Tabbalk onderaan, alleen op een gsm: daar zit je duim */}
       <nav
         aria-label="Hoofdmenu"
-        className="tabbalk materiaal fixed inset-x-0 bottom-0 z-30 grid grid-cols-3 pb-[env(safe-area-inset-bottom)] md:hidden"
+        className="tabbalk materiaal fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 pb-[env(safe-area-inset-bottom)] md:hidden"
       >
         {PAGINAS.map(({ href, segment, label, Icoon }) => {
           const hier = segment === actief;

@@ -1,10 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <defs>
     <linearGradient id="groen" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#34c759" />
-      <stop offset="1" stop-color="#248a3d" />
+      <stop offset="0" stop-color="#3ddc6c" />
+      <stop offset="1" stop-color="#1a7f37" />
     </linearGradient>
   </defs>
-  <rect width="64" height="64" rx="15" fill="url(#groen)" />
-  <text x="32" y="42" text-anchor="middle" font-family="-apple-system, 'Segoe UI', Arial, sans-serif" font-size="26" font-weight="700" fill="#fff">VS</text>
+  <rect width="64" height="64" rx="14.5" fill="url(#groen)" />
+  <g fill="none" stroke="#fff" stroke-linecap="round">
+    <circle cx="27.5" cy="27.5" r="14" stroke-width="4.5" />
+    <path d="M27.5 15.5v24" stroke-width="2.25" stroke-opacity="0.85" />
+    <circle cx="27.5" cy="27.5" r="4.75" stroke-width="2.25" stroke-opacity="0.85" />
+    <path d="m38.5 38.5 9 9" stroke-width="6.5" />
+  </g>
 </svg>
