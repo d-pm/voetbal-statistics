@@ -1,19 +1,49 @@
 """
-Laadt de Premier League-teams, -spelers en -wedstrijden in de lokale database (voetbal.db).
+Laadt de Premier League-data in de lokale database (voetbal.db):
+teams, spelers, wedstrijden, speeldagen en de cijfers van elke speler per speeldag.
 
 Je mag dit zo vaak draaien als je wilt: bestaande rijen worden bijgewerkt, niet verdubbeld.
+Een speeldag die helemaal klaar is wordt maar één keer opgehaald.
 
 Uitvoeren:  python ingest.py
+            python ingest.py --alles    (haalt ook de afgewerkte speeldagen opnieuw op)
 """
 
+import argparse
 import sqlite3
 from pathlib import Path
 
-from fpl import haal_basisdata_op, haal_wedstrijden_op
+from fpl import haal_basisdata_op, haal_speeldag_op, haal_wedstrijden_op
 
 MAP = Path(__file__).parent
 DATABASE = MAP / "voetbal.db"
 SCHEMA = MAP / "schema.sql"
+
+# Verhoog dit getal als je schema.sql aanpast. De database wordt dan opnieuw opgebouwd.
+# Dat kan zonder verlies, want alles wat erin staat halen we opnieuw op bij de FPL API.
+SCHEMA_VERSIE = 2
+
+TABELLEN = ("competitions", "teams", "players", "fixtures", "gameweeks", "player_gameweek_stats")
+
+
+def open_database(pad=DATABASE):
+    """Opent de database en maakt de tabellen aan als ze nog niet bestaan."""
+    db = sqlite3.connect(pad)
+
+    # "user_version" is een getal dat SQLite voor ons bijhoudt. Wij bewaren er de schemaversie in.
+    versie = db.execute("PRAGMA user_version").fetchone()[0]
+    oude_onderdelen = db.execute(
+        "SELECT type, name FROM sqlite_master WHERE type IN ('view', 'table') AND name NOT LIKE 'sqlite_%'"
+    ).fetchall()
+    if oude_onderdelen and versie != SCHEMA_VERSIE:
+        print("De tabellen zijn veranderd sinds de vorige keer: ik bouw de database opnieuw op.")
+        for soort, naam in oude_onderdelen:
+            db.execute(f"DROP {soort.upper()} IF EXISTS {naam}")
+
+    db.execute("PRAGMA foreign_keys = ON")  # SQLite controleert verwijzingen tussen tabellen pas als je dit aanzet
+    db.executescript(SCHEMA.read_text(encoding="utf-8"))
+    db.execute(f"PRAGMA user_version = {SCHEMA_VERSIE}")
+    return db
 
 
 def bepaal_seizoen(data):
@@ -52,6 +82,10 @@ def bewaar_teams(db, teams, competitie_id):
 
 
 def bewaar_spelers(db, spelers, posities, team_ids):
+    """
+    Bewaart de spelers en geeft een woordenboek terug: FPL-id -> ons eigen id.
+    Dat hebben we nodig om de cijfers per speeldag aan de juiste speler te koppelen.
+    """
     for p in spelers:
         db.execute(
             """
@@ -75,6 +109,9 @@ def bewaar_spelers(db, spelers, posities, team_ids):
                 p["code"],
             ),
         )
+
+    eigen_id_per_code = dict(db.execute("SELECT fpl_code, id FROM players").fetchall())
+    return {p["id"]: eigen_id_per_code[p["code"]] for p in spelers}
 
 
 def bewaar_wedstrijden(db, wedstrijden, competitie_id, seizoen, team_ids):
@@ -113,26 +150,114 @@ def bewaar_wedstrijden(db, wedstrijden, competitie_id, seizoen, team_ids):
         )
 
 
+def bewaar_speeldagen(db, speeldagen, competitie_id, seizoen):
+    for dag in speeldagen:
+        # Pas als FPL alles nagekeken heeft ("data_checked") veranderen de cijfers niet meer
+        afgelopen = dag["finished"] and dag["data_checked"]
+        db.execute(
+            """
+            INSERT INTO gameweeks (competition_id, seizoen, speeldag, deadline, afgelopen)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT (competition_id, seizoen, speeldag) DO UPDATE SET
+                deadline = excluded.deadline,
+                afgelopen = excluded.afgelopen
+            """,
+            (competitie_id, seizoen, dag["id"], dag["deadline_time"], int(afgelopen)),
+        )
+
+
+def bewaar_speeldagstats(db, gameweek_id, cijfers, speler_ids):
+    """Bewaart de cijfers van één speeldag en geeft terug hoeveel spelers er speelden."""
+    # Eerst de oude rijen van deze speeldag weg: zo blijft er niets staan dat FPL intussen verbeterd heeft
+    db.execute("DELETE FROM player_gameweek_stats WHERE gameweek_id = ?", (gameweek_id,))
+
+    aantal = 0
+    for speler in cijfers:
+        stats = speler["stats"]
+        if stats["minutes"] == 0 or speler["id"] not in speler_ids:
+            continue  # speelde niet (of FPL kent de speler niet meer)
+
+        db.execute(
+            """
+            INSERT INTO player_gameweek_stats (player_id, gameweek_id, wedstrijden, minuten, goals, assists,
+                                               xg, xa, tackles, recoveries, cbi, saves, clean_sheets, goals_tegen)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                speler_ids[speler["id"]],
+                gameweek_id,
+                len(speler["explain"]),  # één blokje uitleg per wedstrijd in deze speeldag
+                stats["minutes"],
+                stats["goals_scored"],
+                stats["assists"],
+                float(stats["expected_goals"]),  # komt binnen als tekst, bv. "0.50"
+                float(stats["expected_assists"]),
+                stats["tackles"],
+                stats["recoveries"],
+                stats["clearances_blocks_interceptions"],
+                stats["saves"],
+                stats["clean_sheets"],
+                stats["goals_conceded"],
+            ),
+        )
+        aantal += 1
+    return aantal
+
+
+def laad_alles(db, data, wedstrijden, haal_speeldag, alles=False):
+    """
+    Zet alle data in de database.
+
+    "haal_speeldag" is de functie die de cijfers van één speeldag ophaalt. Die geven we mee
+    als argument, zodat de tests een nepversie kunnen gebruiken die niet naar het internet gaat.
+    """
+    posities = {pos["id"]: pos["singular_name_short"] for pos in data["element_types"]}
+    seizoen = bepaal_seizoen(data)
+
+    # "with db" = alles hierbinnen wordt samen opgeslagen. Gaat er iets mis, dan wordt niets opgeslagen.
+    with db:
+        competitie_id = bewaar_competitie(db, "Premier League")
+        team_ids = bewaar_teams(db, data["teams"], competitie_id)
+        speler_ids = bewaar_spelers(db, data["elements"], posities, team_ids)
+        bewaar_wedstrijden(db, wedstrijden, competitie_id, seizoen, team_ids)
+        bewaar_speeldagen(db, data["events"], competitie_id, seizoen)
+
+    for dag in data["events"]:
+        begonnen = dag["finished"] or dag["is_current"]
+        if not begonnen:
+            continue
+
+        gameweek_id, stats_geladen = db.execute(
+            "SELECT id, stats_geladen FROM gameweeks WHERE competition_id = ? AND seizoen = ? AND speeldag = ?",
+            (competitie_id, seizoen, dag["id"]),
+        ).fetchone()
+        if stats_geladen and not alles:
+            continue  # de definitieve cijfers hebben we al
+
+        cijfers = haal_speeldag(dag["id"])
+        definitief = dag["finished"] and dag["data_checked"]
+        with db:
+            aantal = bewaar_speeldagstats(db, gameweek_id, cijfers["elements"], speler_ids)
+            db.execute("UPDATE gameweeks SET stats_geladen = ? WHERE id = ?", (int(definitief), gameweek_id))
+        print(f"  Speeldag {dag['id']}: {aantal} spelers" + ("" if definitief else " (nog niet definitief)"))
+
+
 def main():
+    parser = argparse.ArgumentParser(description="Laadt de Premier League-data in voetbal.db.")
+    parser.add_argument("--alles", action="store_true", help="haal ook de afgewerkte speeldagen opnieuw op")
+    opties = parser.parse_args()
+
     print("Data ophalen bij de FPL API...")
     data = haal_basisdata_op()
     wedstrijden = haal_wedstrijden_op()
-    posities = {pos["id"]: pos["singular_name_short"] for pos in data["element_types"]}
 
-    db = sqlite3.connect(DATABASE)
-    db.execute("PRAGMA foreign_keys = ON")  # SQLite controleert verwijzingen tussen tabellen pas als je dit aanzet
-    db.executescript(SCHEMA.read_text(encoding="utf-8"))  # maakt de tabellen als ze nog niet bestaan
-
-    competitie_id = bewaar_competitie(db, "Premier League")
-    team_ids = bewaar_teams(db, data["teams"], competitie_id)
-    bewaar_spelers(db, data["elements"], posities, team_ids)
-    bewaar_wedstrijden(db, wedstrijden, competitie_id, bepaal_seizoen(data), team_ids)
-    db.commit()  # pas nu worden de wijzigingen echt opgeslagen
+    db = open_database()
+    laad_alles(db, data, wedstrijden, haal_speeldag_op, alles=opties.alles)
 
     print(f"Opgeslagen in {DATABASE.name}:")
-    for tabel in ("competitions", "teams", "players", "fixtures"):
+    for tabel in TABELLEN:
         aantal = db.execute(f"SELECT COUNT(*) FROM {tabel}").fetchone()[0]
-        print(f"  {tabel:<13}{aantal:>4} rijen")
+        print(f"  {tabel:<23}{aantal:>6} rijen")
     db.close()
 
 

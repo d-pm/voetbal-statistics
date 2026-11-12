@@ -12,6 +12,10 @@ from pathlib import Path
 
 DATABASE = Path(__file__).parent / "voetbal.db"
 
+# Een naam als "Petrović" kan niet in elke Windows-terminal getoond worden.
+# Met errors="replace" komt er dan een "?" in plaats van een foutmelding.
+sys.stdout.reconfigure(errors="replace")
+
 if len(sys.argv) != 2:
     print('Gebruik: python query.py "SELECT ..."')
     sys.exit(1)

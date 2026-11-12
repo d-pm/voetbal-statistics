@@ -4,7 +4,13 @@ Eerste scout-tool: zoek spelers die passen bij een opdracht van de club.
 Pas de opdracht hieronder aan en voer uit met:  python scout.py
 """
 
+import sys
+
 from fpl import haal_spelers_op
+
+# Een naam als "Petrović" kan niet in elke Windows-terminal getoond worden.
+# Met errors="replace" komt er dan een "?" in plaats van een foutmelding.
+sys.stdout.reconfigure(errors="replace")
 
 # ---- De opdracht van de club: pas dit aan --------------------------------
 POSITIE = "DEF"         # GKP, DEF, MID of FWD

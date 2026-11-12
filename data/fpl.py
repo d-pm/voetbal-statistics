@@ -5,36 +5,63 @@ en zet die om naar een eenvoudige lijst met spelers.
 Snel testen:  python fpl.py
 """
 
+import time
 from datetime import date
 
 import requests
 
 BASIS_URL = "https://fantasy.premierleague.com/api"
 
+# Zo weet de FPL-server wie er aanklopt. Dat is beleefd bij een API zonder sleutel.
+KOPTEKST = {"User-Agent": "voetbal-statistics (studentenproject, github.com/d-pm/voetbal-statistics)"}
+
+POGINGEN = 3  # zo vaak proberen we het opnieuw als de API even niet antwoordt
+
+
+def haal_op(pad):
+    """Vraagt één adres van de FPL API op, bv. "fixtures", en geeft het antwoord terug."""
+    for poging in range(1, POGINGEN + 1):
+        try:
+            antwoord = requests.get(f"{BASIS_URL}/{pad}/", headers=KOPTEKST, timeout=30)
+            antwoord.raise_for_status()  # maakt er een fout van als de API bv. "404" antwoordt
+            return antwoord.json()
+        except requests.RequestException as fout:
+            if poging == POGINGEN:
+                raise  # na de laatste poging geven we de fout door
+            wachttijd = 2 * poging
+            print(f"  De FPL API antwoordde niet ({fout}). Nieuwe poging over {wachttijd} seconden...")
+            time.sleep(wachttijd)
+
 
 def haal_basisdata_op():
     """Alle teams, spelers en speeldagen van dit seizoen in één keer."""
-    antwoord = requests.get(f"{BASIS_URL}/bootstrap-static/", timeout=30)
-    antwoord.raise_for_status()  # stopt met een duidelijke fout als de API niet antwoordt
-    return antwoord.json()
+    return haal_op("bootstrap-static")
 
 
 def haal_wedstrijden_op():
     """Alle 380 wedstrijden van dit seizoen, gespeeld en nog te spelen."""
-    antwoord = requests.get(f"{BASIS_URL}/fixtures/", timeout=30)
-    antwoord.raise_for_status()
-    return antwoord.json()
+    return haal_op("fixtures")
 
 
-def bereken_leeftijd(geboortedatum):
-    """'2001-03-24' -> 25. Geeft None terug als de geboortedatum onbekend is."""
+def haal_speeldag_op(speeldag):
+    """Wat elke speler deed in één speeldag: minuten, goals, xG, tackles, ..."""
+    return haal_op(f"event/{speeldag}/live")
+
+
+def bereken_leeftijd(geboortedatum, op=None):
+    """
+    '2001-03-24' -> 25. Geeft None terug als de geboortedatum onbekend is.
+
+    Met "op" kies je de dag waarop je de leeftijd wilt weten, bv. de deadline van
+    een speeldag. Zonder "op" is dat vandaag.
+    """
     if not geboortedatum:
         return None
     geboren = date.fromisoformat(geboortedatum)
-    vandaag = date.today()
-    leeftijd = vandaag.year - geboren.year
-    if (vandaag.month, vandaag.day) < (geboren.month, geboren.day):
-        leeftijd -= 1  # dit jaar nog niet jarig geweest
+    dag = op or date.today()
+    leeftijd = dag.year - geboren.year
+    if (dag.month, dag.day) < (geboren.month, geboren.day):
+        leeftijd -= 1  # dat jaar nog niet jarig geweest
     return leeftijd
 
 

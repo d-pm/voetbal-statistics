@@ -117,7 +117,11 @@ Zet deze formules in **één configuratiebestand**, want jullie gaan ze vaak bij
 - `teams`: id, naam, afkorting, competition_id, fpl_code
 - `players`: id, naam, volledige_naam, geboortedatum, positie, team_id, nieuws, fpl_code
 - `fixtures`: id, competition_id, seizoen, speeldag, thuis_team_id, uit_team_id, aftrap, thuis_score, uit_score, status, fpl_code
-- `player_match_stats`: player_id, fixture_id, minuten, goals, assists, xg, xa, tackles, recoveries, … (volgende stap)
+- `gameweeks`: id, competition_id, seizoen, speeldag, deadline, afgelopen, stats_geladen
+- `player_gameweek_stats`: player_id, gameweek_id, wedstrijden, minuten, goals, assists, xg, xa, tackles, recoveries, cbi, saves, clean_sheets, goals_tegen
+- `player_totals` (view): alles opgeteld per speler en seizoen, ook per 90 minuten
+
+De cijfers staan **per speeldag** en niet per wedstrijd. De FPL API geeft alle statistieken per speeldag in één aanvraag; per wedstrijd zou één aanvraag per speler kosten (meer dan 600). In een dubbele speeldag tellen de twee wedstrijden dus samen: de kolom `wedstrijden` zegt hoeveel het er waren.
 
 Elke tabel heeft een eigen `id`. Per bron bewaren we het vaste nummer in een eigen kolom: nu `fpl_code`, later `api_football_id`. Dat is eenvoudiger dan een aparte koppeltabel zolang er maar twee bronnen zijn.
 
@@ -189,7 +193,7 @@ Elke tabel heeft een eigen `id`. Per bron bewaren we het vaste nummer in een eig
 
 ### Sessie 6: punten en ranglijst
 
-- **Data:** `score.py` berekent na de speelweek de punten. **Test dit op oude speeldagen** ("replay"), dan hoef je niet op het weekend te wachten.
+- **Data:** `score.py` berekent na de speelweek de punten. **Test dit op oude speeldagen** ("replay"), dan hoef je niet op het weekend te wachten. *De replay is gedaan: `score.py` rangschikt de spelers van een oude speeldag met de formules uit `puntentelling.py`. Wat nog moet: de punten van echte aanbevelingen in de tabel `scores` zetten, zodra de speltabellen er zijn.*
 - **Web:** de ranglijst per competitie en een overzicht "mijn aanbevelingen".
 
 ### Sessie 7: echte test
