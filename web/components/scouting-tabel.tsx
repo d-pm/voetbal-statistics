@@ -1,15 +1,23 @@
 "use client"; // dit onderdeel draait in de browser, want het reageert op klikken en typen
 
 import { useMemo, useState, type ReactNode } from "react";
-import type { Positie, Speler } from "@/lib/spelers";
+import type { Positie, Speler } from "@/lib/competitie";
+import {
+  STANDAARD,
+  isGefilterd,
+  pasToe,
+  standaardAflopend,
+  type Filters,
+  type SorteerKolom,
+} from "@/lib/filters";
 import { KOLOMMEN, POSITIE_NAMEN, formatteer, waarde, type Statistiek } from "@/lib/statistieken";
-import { PijlOmlaag, PijlRechts, PijlenOpNeer, Vergrootglas, Volgorde, Waarschuwing } from "./iconen";
+import { useUrlFilters } from "./gebruik-url-filters";
+import { PijlOmlaag, PijlRechts, PijlenOpNeer, Vergrootglas, Volgorde } from "./iconen";
+import { Nieuws } from "./nieuws";
+import { Schakelaar } from "./schakelaar";
 import { SegmentKeuze } from "./segment-keuze";
 import { SpelerSheet } from "./speler-sheet";
 import { lijnErboven } from "./stijl";
-
-type SorteerKolom = Statistiek | "naam" | "leeftijd";
-type Sortering = { kolom: SorteerKolom; aflopend: boolean };
 
 const POSITIES: { waarde: Positie | "ALLE"; label: string; kort: string }[] = [
   { waarde: "ALLE", label: "Alle", kort: "Alle" },
@@ -21,15 +29,33 @@ const POSITIES: { waarde: Positie | "ALLE"; label: string; kort: string }[] = [
 
 const MAX_RIJEN = 100; // meer rijen tonen we pas als je erom vraagt
 
-export function ScoutingTabel({ spelers }: { spelers: Speler[] }) {
-  // De filters: elke keer dat er één verandert, tekent React de tabel opnieuw
+/** De scoutingdatabase. De filters staan in de URL, zodat je een zoekopdracht kunt delen. */
+export function Scouting({ spelers }: { spelers: Speler[] }) {
+  const [filters, wijzig, vanBuitenaf] = useUrlFilters();
+  // "key": kom je via een link bij een andere zoekopdracht, dan begint de tabel opnieuw.
+  // Zo blijft er geen oude zoekterm staan die alle spelers verbergt.
+  return <ScoutingTabel key={vanBuitenaf} spelers={spelers} filters={filters} onWijzig={wijzig} />;
+}
+
+/**
+ * Dezelfde tabel met de standaardfilters. Die staat al in de pagina die de server
+ * stuurt, zodat je meteen spelers ziet terwijl de browser de echte versie klaarzet.
+ */
+export function ScoutingBijLaden({ spelers }: { spelers: Speler[] }) {
+  return <ScoutingTabel spelers={spelers} filters={STANDAARD} onWijzig={() => {}} />;
+}
+
+function ScoutingTabel({
+  spelers,
+  filters,
+  onWijzig,
+}: {
+  spelers: Speler[];
+  filters: Filters;
+  onWijzig: (wijziging: Partial<Filters>) => void;
+}) {
+  // Wat alleen voor dit moment telt, staat niet in de URL maar in gewone state
   const [zoekterm, setZoekterm] = useState("");
-  const [positie, setPositie] = useState<Positie | "ALLE">("ALLE");
-  const [team, setTeam] = useState("ALLE");
-  const [maxLeeftijd, setMaxLeeftijd] = useState("");
-  const [minMinuten, setMinMinuten] = useState("270");
-  const [per90, setPer90] = useState(false);
-  const [sortering, setSortering] = useState<Sortering>({ kolom: "xg", aflopend: true });
   const [toonAlles, setToonAlles] = useState(false);
   const [gekozenId, setGekozenId] = useState<number | null>(null); // de speler waarvan de kaart open is
 
@@ -40,71 +66,56 @@ export function ScoutingTabel({ spelers }: { spelers: Speler[] }) {
   }, [spelers]);
 
   // Filteren en sorteren. useMemo rekent dit alleen opnieuw uit als er iets veranderd is.
-  const resultaat = useMemo(() => {
-    const zoek = zoekterm.trim().toLowerCase();
-    const leeftijdGrens = maxLeeftijd === "" ? null : Number(maxLeeftijd);
-    const minutenGrens = Number(minMinuten) || 0;
-
-    const gefilterd = spelers.filter(
-      (s) =>
-        (zoek === "" || s.naam.toLowerCase().includes(zoek)) &&
-        (positie === "ALLE" || s.positie === positie) &&
-        (team === "ALLE" || s.team === team) &&
-        (leeftijdGrens === null || (s.leeftijd !== null && s.leeftijd <= leeftijdGrens)) &&
-        s.minuten >= minutenGrens,
-    );
-
-    const richting = sortering.aflopend ? -1 : 1;
-    return gefilterd.sort((a, b) => {
-      if (sortering.kolom === "naam") {
-        return richting * a.naam.localeCompare(b.naam);
-      }
-      if (sortering.kolom === "leeftijd") {
-        if (a.leeftijd === null || b.leeftijd === null) {
-          // spelers zonder geboortedatum altijd onderaan
-          return (a.leeftijd === null ? 1 : 0) - (b.leeftijd === null ? 1 : 0);
-        }
-        return richting * (a.leeftijd - b.leeftijd);
-      }
-      return richting * (waarde(a, sortering.kolom, per90) - waarde(b, sortering.kolom, per90));
-    });
-  }, [spelers, zoekterm, positie, team, maxLeeftijd, minMinuten, per90, sortering]);
+  const resultaat = useMemo(() => pasToe(spelers, filters, zoekterm), [spelers, filters, zoekterm]);
 
   function sorteerOp(kolom: SorteerKolom) {
-    setSortering((huidig) =>
-      huidig.kolom === kolom
-        ? { kolom, aflopend: !huidig.aflopend } // nog eens klikken = andere richting
-        : { kolom, aflopend: kolom !== "naam" }, // getallen: hoogste eerst, namen: A-Z
+    onWijzig(
+      filters.sorteer === kolom
+        ? { aflopend: !filters.aflopend } // nog eens klikken = andere richting
+        : { sorteer: kolom, aflopend: standaardAflopend(kolom) },
     );
   }
 
+  function wisFilters() {
+    setZoekterm("");
+    // sorteren en "per 90" laten we staan: die verbergen niemand
+    onWijzig({
+      positie: STANDAARD.positie,
+      team: STANDAARD.team,
+      maxLeeftijd: STANDAARD.maxLeeftijd,
+      minMinuten: STANDAARD.minMinuten,
+      alleenFit: STANDAARD.alleenFit,
+    });
+  }
+
+  const { per90 } = filters;
   const zichtbaar = toonAlles ? resultaat : resultaat.slice(0, MAX_RIJEN);
   const gekozen = spelers.find((s) => s.id === gekozenId) ?? null;
+  const gefilterd = isGefilterd(filters, zoekterm);
 
   // Op een gsm toont elke rij één cijfer: het cijfer waarop je sorteert
   const getoond: Statistiek =
-    sortering.kolom === "naam" || sortering.kolom === "leeftijd" ? "minuten" : sortering.kolom;
+    filters.sorteer === "naam" || filters.sorteer === "leeftijd" ? "minuten" : filters.sorteer;
   const getoondLabel = KOLOMMEN.find((k) => k.sleutel === getoond)!.label;
 
   return (
     <section>
       {/* ---- Filters ---- */}
-      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_36rem]">
         <label className="relative flex h-10 items-center rounded-[10px] bg-vulling has-focus-visible:ring-2 has-focus-visible:ring-accent/50">
           <Vergrootglas className="pointer-events-none absolute left-2.5 size-4 text-secundair" />
-          <span className="sr-only">Zoek op naam</span>
+          <span className="sr-only">Zoek op naam of team</span>
           <input
             type="search"
             value={zoekterm}
             onChange={(e) => setZoekterm(e.target.value)}
-            placeholder="Zoek een speler"
+            placeholder="Zoek een speler of team"
             className="h-full w-full bg-transparent pl-8 pr-3 text-[17px] outline-none placeholder:text-secundair sm:text-[15px]"
           />
         </label>
 
         <SegmentKeuze
           label="Positie"
-          className="lg:w-[36rem]"
           opties={POSITIES.map((p) => ({
             waarde: p.waarde,
             uitleg: p.label,
@@ -115,214 +126,224 @@ export function ScoutingTabel({ spelers }: { spelers: Speler[] }) {
               </>
             ),
           }))}
-          gekozen={positie}
-          onKies={setPositie}
+          gekozen={filters.positie}
+          onKies={(positie) => onWijzig({ positie })}
         />
+      </div>
 
-        <div className="grid overflow-hidden rounded-xl bg-kaart sm:grid-cols-3">
-          <FilterRij label="Team">
-            <select
-              value={team}
-              onChange={(e) => setTeam(e.target.value)}
-              className={`${waardeStijl} appearance-none truncate [text-align-last:right]`}
-            >
-              <option value="ALLE">Alle teams</option>
-              {teams.map(([afkorting, naam]) => (
-                <option key={afkorting} value={afkorting}>
-                  {naam}
-                </option>
-              ))}
-            </select>
-            <PijlenOpNeer className="pointer-events-none size-3.5 shrink-0 text-secundair" />
-          </FilterRij>
-          <FilterRij label="Max. leeftijd">
-            <input
-              type="number"
-              inputMode="numeric"
-              min={15}
-              max={45}
-              value={maxLeeftijd}
-              onChange={(e) => setMaxLeeftijd(e.target.value)}
-              placeholder="Geen"
-              className={waardeStijl}
-            />
-          </FilterRij>
-          <FilterRij label="Min. minuten">
-            <input
-              type="number"
-              inputMode="numeric"
-              min={0}
-              step={90}
-              value={minMinuten}
-              onChange={(e) => setMinMinuten(e.target.value)}
-              className={waardeStijl}
-            />
-          </FilterRij>
-        </div>
+      {/* De lijntjes tussen de vakjes zijn de achtergrond die door de kiertjes (gap-px) schijnt */}
+      <div className="mt-3 grid gap-px overflow-hidden rounded-xl bg-lijn sm:grid-cols-2 lg:grid-cols-4">
+        <FilterRij label="Team">
+          <select
+            value={filters.team}
+            onChange={(e) => onWijzig({ team: e.target.value })}
+            className={`${waardeStijl} appearance-none truncate [text-align-last:right]`}
+          >
+            <option value="ALLE">Alle teams</option>
+            {teams.map(([afkorting, naam]) => (
+              <option key={afkorting} value={afkorting}>
+                {naam}
+              </option>
+            ))}
+          </select>
+          <PijlenOpNeer className="pointer-events-none size-3.5 shrink-0 text-secundair" />
+        </FilterRij>
+        <FilterRij label="Max. leeftijd">
+          <input
+            type="number"
+            inputMode="numeric"
+            min={15}
+            max={45}
+            value={filters.maxLeeftijd ?? ""}
+            onChange={(e) => onWijzig({ maxLeeftijd: naarGetal(e.target.value) })}
+            placeholder="Geen"
+            className={waardeStijl}
+          />
+        </FilterRij>
+        <FilterRij label="Min. minuten">
+          <input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            step={90}
+            value={filters.minMinuten ?? ""}
+            onChange={(e) => onWijzig({ minMinuten: naarGetal(e.target.value) })}
+            placeholder="0"
+            className={waardeStijl}
+          />
+        </FilterRij>
+        <FilterRij label="Alleen beschikbaar" uitleg="Verbergt wie geblesseerd of geschorst is">
+          <span className="flex-1" />
+          <Schakelaar aan={filters.alleenFit} onWissel={(alleenFit) => onWijzig({ alleenFit })} />
+        </FilterRij>
+      </div>
 
+      {/* ---- Weergave, aantal en sorteren ---- */}
+      <div className="mt-3 flex flex-col gap-3 md:mt-5 md:flex-row md:items-center md:justify-between">
         <SegmentKeuze
           label="Weergave"
-          className="lg:w-[16rem]"
+          className="md:order-2 md:w-64"
           opties={[
             { waarde: false, label: "Totaal" },
             { waarde: true, label: "Per 90 min" },
           ]}
           gekozen={per90}
-          onKies={setPer90}
+          onKies={(keuze) => onWijzig({ per90: keuze })}
         />
-      </div>
 
-      {/* ---- Aantal en sorteren ---- */}
-      <div className="mt-6 flex min-h-9 items-center justify-between gap-3 px-1 pb-1.5">
-        <p className="text-[13px] font-semibold text-secundair" aria-live="polite">
-          {resultaat.length} {resultaat.length === 1 ? "speler" : "spelers"}
-        </p>
+        <div className="flex min-h-9 items-center justify-between gap-3 px-1">
+          <p className="flex items-center gap-3 text-[13px] font-semibold text-secundair">
+            <span aria-live="polite" className="whitespace-nowrap">
+              {resultaat.length} {resultaat.length === 1 ? "speler" : "spelers"}
+            </span>
+            {gefilterd && (
+              <button
+                type="button"
+                onClick={wisFilters}
+                className="rounded text-accent outline-none transition-opacity focus-visible:ring-2 focus-visible:ring-accent/50 active:opacity-50"
+              >
+                Wis filters
+              </button>
+            )}
+          </p>
 
-        {/* Op een gsm kies je hier waarop je sorteert. In de tabel klik je op een kolom. */}
-        <div className="flex items-center md:hidden">
-          <label className="relative flex items-center text-accent">
-            <span className="sr-only">Sorteer op</span>
-            <select
-              value={sortering.kolom}
-              onChange={(e) => sorteerOp(e.target.value as SorteerKolom)}
-              className="appearance-none bg-transparent py-1 pr-5 text-base font-semibold outline-none [text-align-last:right]"
+          {/* Op een gsm kies je hier waarop je sorteert. In de tabel klik je op een kolom. */}
+          <div className="flex items-center md:hidden">
+            <label className="relative flex items-center text-accent">
+              <span className="sr-only">Sorteer op</span>
+              <select
+                value={filters.sorteer}
+                onChange={(e) => sorteerOp(e.target.value as SorteerKolom)}
+                className="appearance-none bg-transparent py-1 pr-5 text-base font-semibold outline-none [text-align-last:right]"
+              >
+                <option value="naam">Naam</option>
+                <option value="leeftijd">Leeftijd</option>
+                {KOLOMMEN.map((k) => (
+                  <option key={k.sleutel} value={k.sleutel}>
+                    {k.uitleg}
+                  </option>
+                ))}
+              </select>
+              <PijlenOpNeer className="pointer-events-none absolute right-0 size-3.5" />
+            </label>
+            <button
+              type="button"
+              onClick={() => onWijzig({ aflopend: !filters.aflopend })}
+              aria-label="Volgorde omdraaien"
+              className="ml-1 grid size-9 place-items-center rounded-full text-accent transition-colors active:bg-vulling"
             >
-              <option value="naam">Naam</option>
-              <option value="leeftijd">Leeftijd</option>
-              {KOLOMMEN.map((k) => (
-                <option key={k.sleutel} value={k.sleutel}>
-                  {k.uitleg}
-                </option>
-              ))}
-            </select>
-            <PijlenOpNeer className="pointer-events-none absolute right-0 size-3.5" />
-          </label>
-          <button
-            type="button"
-            onClick={() => setSortering((huidig) => ({ ...huidig, aflopend: !huidig.aflopend }))}
-            aria-label="Volgorde omdraaien"
-            className="ml-1 grid size-9 place-items-center rounded-full text-accent transition-colors active:bg-vulling"
-          >
-            <Volgorde
-              className={`size-4 transition-transform duration-300 motion-reduce:transition-none ${
-                sortering.aflopend ? "" : "rotate-180"
-              }`}
-            />
-          </button>
+              <Volgorde
+                className={`size-4 transition-transform duration-300 motion-reduce:transition-none ${
+                  filters.aflopend ? "" : "rotate-180"
+                }`}
+              />
+            </button>
+          </div>
         </div>
       </div>
 
-      {resultaat.length === 0 ? (
-        <div className="grid place-items-center rounded-2xl bg-kaart px-6 py-14 text-center">
-          <Vergrootglas className="size-8 text-tertiair" />
-          <p className="mt-3 text-[17px] font-semibold">Geen spelers gevonden</p>
-          <p className="mt-1 text-[15px] text-secundair">Pas je filters aan of zoek op een andere naam.</p>
-        </div>
-      ) : (
-        <>
-          {/* ---- Lijst, op een gsm ---- */}
-          <ul className="overflow-hidden rounded-2xl bg-kaart md:hidden">
-            {zichtbaar.map((s) => (
-              <li key={s.id} className={lijnErboven}>
-                <button
-                  type="button"
-                  onClick={() => setGekozenId(s.id)}
-                  className="flex w-full items-center gap-3 py-2.5 pl-4 pr-3 text-left transition-colors active:bg-kaart-druk"
-                >
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[17px] font-semibold tracking-[-0.022em]">{s.naam}</span>
-                    <span className="block truncate text-[13px] text-secundair">
-                      {s.team} · {POSITIE_NAMEN[s.positie]}
-                      {s.leeftijd !== null && ` · ${s.leeftijd} jaar`}
-                    </span>
-                    {s.nieuws && (
-                      <span className="mt-0.5 flex items-center gap-1 text-[13px] text-waarschuwing">
-                        <Waarschuwing className="size-3.5 shrink-0" />
-                        <span className="truncate">{s.nieuws}</span>
+      <div className="mt-1.5">
+        {resultaat.length === 0 ? (
+          <div className="grid place-items-center rounded-2xl bg-kaart px-6 py-14 text-center">
+            <Vergrootglas className="size-8 text-tertiair" />
+            <p className="mt-3 text-[17px] font-semibold">Geen spelers gevonden</p>
+            <p className="mt-1 text-[15px] text-secundair">Niemand past bij al je filters samen.</p>
+            <button type="button" onClick={wisFilters} className={`mt-5 ${knop}`}>
+              Wis filters
+            </button>
+          </div>
+        ) : (
+          <>
+            {/* ---- Lijst, op een gsm ---- */}
+            <ul className="overflow-hidden rounded-2xl bg-kaart md:hidden">
+              {zichtbaar.map((s) => (
+                <li key={s.id} className={lijnErboven}>
+                  <button
+                    type="button"
+                    onClick={() => setGekozenId(s.id)}
+                    className="flex w-full items-center gap-3 py-2.5 pl-4 pr-3 text-left transition-colors active:bg-kaart-druk"
+                  >
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[17px] font-semibold tracking-[-0.022em]">{s.naam}</span>
+                      <span className="block truncate text-[13px] text-secundair">
+                        {s.team} · {POSITIE_NAMEN[s.positie]}
+                        {s.leeftijd !== null && ` · ${s.leeftijd} jaar`}
                       </span>
-                    )}
-                  </span>
-                  <span className="shrink-0 text-right">
-                    <span className="block text-[17px] font-semibold tabular-nums">
-                      {formatteer(getoond, waarde(s, getoond, per90), per90)}
+                      <Nieuws speler={s} className="mt-0.5 text-[13px]" />
                     </span>
-                    <span className="block text-[11px] text-secundair">
-                      {getoondLabel}
-                      {per90 && getoond !== "minuten" && " /90"}
+                    <span className="shrink-0 text-right">
+                      <span className="block text-[17px] font-semibold tabular-nums">
+                        {formatteer(getoond, waarde(s, getoond, per90), per90)}
+                      </span>
+                      <span className="block text-[11px] text-secundair">
+                        {getoondLabel}
+                        {per90 && getoond !== "minuten" && " /90"}
+                      </span>
                     </span>
-                  </span>
-                  <PijlRechts className="size-3.5 shrink-0 text-tertiair" />
-                </button>
-              </li>
-            ))}
-          </ul>
+                    <PijlRechts className="size-3.5 shrink-0 text-tertiair" />
+                  </button>
+                </li>
+              ))}
+            </ul>
 
-          {/* ---- Tabel, vanaf een tablet ---- */}
-          <div className="hidden overflow-x-auto rounded-2xl bg-kaart md:block lg:overflow-clip">
-            <table className="w-full min-w-[56rem] border-separate border-spacing-0 text-sm">
-              <thead>
-                <tr>
-                  <KolomKop kolom="naam" label="Speler" sortering={sortering} onSorteer={sorteerOp} plakkend />
-                  <KolomKop kolom="leeftijd" label="Leeftijd" sortering={sortering} onSorteer={sorteerOp} rechts />
-                  {KOLOMMEN.map((k) => (
-                    <KolomKop
-                      key={k.sleutel}
-                      kolom={k.sleutel}
-                      label={k.label}
-                      uitleg={k.uitleg}
-                      sortering={sortering}
-                      onSorteer={sorteerOp}
-                      rechts
-                    />
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {zichtbaar.map((s) => (
-                  // Klik op een rij (of op de naam) om de kaart van de speler te openen
-                  <tr key={s.id} onClick={() => setGekozenId(s.id)} className="group cursor-pointer">
-                    <td className={`${cel} sticky left-0 z-10 pl-5 pr-3 ${scheidingslijn}`}>
-                      <button type="button" className="block max-w-[15rem] text-left outline-none focus-visible:underline">
-                        <span className="block text-[15px] font-semibold tracking-[-0.01em]">{s.naam}</span>
-                        <span className="block text-xs text-secundair">
-                          {s.team} · {POSITIE_NAMEN[s.positie]}
-                        </span>
-                        {s.nieuws && (
-                          <span className="mt-0.5 flex items-center gap-1 text-xs text-waarschuwing" title={s.nieuws}>
-                            <Waarschuwing className="size-3 shrink-0" />
-                            <span className="truncate">{s.nieuws}</span>
-                          </span>
-                        )}
-                      </button>
-                    </td>
-                    <td
-                      className={`${cel} px-3 text-right tabular-nums ${sortering.kolom === "leeftijd" ? gesorteerd : ""}`}
-                    >
-                      {s.leeftijd ?? "–"}
-                    </td>
+            {/* ---- Tabel, vanaf een tablet ---- */}
+            <div className="hidden overflow-x-auto rounded-2xl bg-kaart md:block lg:overflow-clip">
+              <table className="w-full min-w-[56rem] border-separate border-spacing-0 text-sm">
+                <thead>
+                  <tr>
+                    <KolomKop kolom="naam" label="Speler" filters={filters} onSorteer={sorteerOp} plakkend />
+                    <KolomKop kolom="leeftijd" label="Leeftijd" filters={filters} onSorteer={sorteerOp} rechts />
                     {KOLOMMEN.map((k) => (
-                      <td
+                      <KolomKop
                         key={k.sleutel}
-                        className={`${cel} px-3 text-right tabular-nums ${sortering.kolom === k.sleutel ? gesorteerd : ""}`}
-                      >
-                        {formatteer(k.sleutel, waarde(s, k.sleutel, per90), per90)}
-                      </td>
+                        kolom={k.sleutel}
+                        label={k.label}
+                        uitleg={k.uitleg}
+                        filters={filters}
+                        onSorteer={sorteerOp}
+                        rechts
+                      />
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </>
-      )}
+                </thead>
+                <tbody>
+                  {zichtbaar.map((s) => (
+                    // Klik op een rij (of op de naam) om de kaart van de speler te openen
+                    <tr key={s.id} onClick={() => setGekozenId(s.id)} className="group cursor-pointer">
+                      <td className={`${cel} sticky left-0 z-10 pl-5 pr-3 ${scheidingslijn}`}>
+                        <button type="button" className="block max-w-[15rem] text-left outline-none focus-visible:underline">
+                          <span className="block text-[15px] font-semibold tracking-[-0.01em]">{s.naam}</span>
+                          <span className="block text-xs text-secundair">
+                            {s.team} · {POSITIE_NAMEN[s.positie]}
+                          </span>
+                          <Nieuws speler={s} className="mt-0.5 text-xs" />
+                        </button>
+                      </td>
+                      <td
+                        className={`${cel} px-3 text-right tabular-nums ${filters.sorteer === "leeftijd" ? gesorteerd : ""}`}
+                      >
+                        {s.leeftijd ?? "–"}
+                      </td>
+                      {KOLOMMEN.map((k) => (
+                        <td
+                          key={k.sleutel}
+                          className={`${cel} px-3 text-right tabular-nums ${filters.sorteer === k.sleutel ? gesorteerd : ""}`}
+                        >
+                          {formatteer(k.sleutel, waarde(s, k.sleutel, per90), per90)}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+      </div>
 
       {!toonAlles && resultaat.length > MAX_RIJEN && (
         <div className="mt-4 flex justify-center">
-          <button
-            type="button"
-            onClick={() => setToonAlles(true)}
-            className="h-11 rounded-full bg-kaart px-5 text-[15px] font-semibold text-accent transition-[opacity,transform] duration-100 active:scale-[0.97] active:opacity-70"
-          >
+          <button type="button" onClick={() => setToonAlles(true)} className={knop}>
             Toon alle {resultaat.length} spelers
           </button>
         </div>
@@ -339,6 +360,14 @@ export function ScoutingTabel({ spelers }: { spelers: Speler[] }) {
   );
 }
 
+/** Wat je in een getalvakje typt -> een getal, of null als het vakje leeg is. */
+function naarGetal(tekst: string) {
+  return tekst === "" ? null : Math.max(0, Math.floor(Number(tekst)));
+}
+
+const knop =
+  "h-11 rounded-full bg-kaart px-5 text-[15px] font-semibold text-accent outline-none transition-[opacity,transform] duration-100 focus-visible:ring-2 focus-visible:ring-accent/50 active:scale-[0.97] active:opacity-70";
+
 // Elke cel: lijntje erboven, iets lichter als je erover gaat, donkerder als je klikt
 const cel =
   "border-t border-lijn bg-kaart py-2.5 transition-colors duration-100 group-first:border-t-0 group-hover:bg-kaart-hover group-active:bg-kaart-druk";
@@ -353,14 +382,11 @@ const scheidingslijn = "shadow-[inset_-1px_0_0_var(--color-lijn)] lg:shadow-none
 const waardeStijl =
   "min-w-0 flex-1 bg-transparent text-right text-[17px] tabular-nums text-secundair outline-none placeholder:text-secundair sm:text-[15px]";
 
-// Lijntje tussen de filterrijen: liggend op een gsm, staand naast elkaar op een groter scherm
-const lijnTussenFilters =
-  "not-first:before:absolute not-first:before:top-0 not-first:before:right-0 not-first:before:left-4 not-first:before:h-px not-first:before:bg-lijn sm:not-first:before:top-2.5 sm:not-first:before:bottom-2.5 sm:not-first:before:left-0 sm:not-first:before:right-auto sm:not-first:before:h-auto sm:not-first:before:w-px";
-
-function FilterRij({ label, children }: { label: string; children: ReactNode }) {
+function FilterRij({ label, uitleg, children }: { label: string; uitleg?: string; children: ReactNode }) {
   return (
     <label
-      className={`relative flex h-11 items-center gap-2 pl-4 pr-3 transition-colors has-focus-visible:bg-kaart-hover ${lijnTussenFilters}`}
+      title={uitleg}
+      className="flex h-11 items-center gap-2 bg-kaart pl-4 pr-3 transition-colors has-focus-visible:bg-kaart-hover"
     >
       <span className="shrink-0 text-[17px] sm:text-[15px]">{label}</span>
       {children}
@@ -372,7 +398,7 @@ function KolomKop({
   kolom,
   label,
   uitleg,
-  sortering,
+  filters,
   onSorteer,
   rechts = false,
   plakkend = false,
@@ -380,16 +406,16 @@ function KolomKop({
   kolom: SorteerKolom;
   label: string;
   uitleg?: string;
-  sortering: Sortering;
+  filters: Filters;
   onSorteer: (kolom: SorteerKolom) => void;
   rechts?: boolean;
   plakkend?: boolean;
 }) {
-  const actief = sortering.kolom === kolom;
+  const actief = filters.sorteer === kolom;
   return (
     <th
       scope="col"
-      aria-sort={actief ? (sortering.aflopend ? "descending" : "ascending") : undefined}
+      aria-sort={actief ? (filters.aflopend ? "descending" : "ascending") : undefined}
       // De koprij blijft bovenaan staan als je scrolt, doorschijnend zoals de bovenbalk
       className={`whitespace-nowrap border-b border-lijn bg-kaart/85 py-3 text-xs font-semibold text-secundair backdrop-blur-xl lg:top-12 ${
         rechts ? "px-3 text-right" : "pl-5 pr-3 text-left"
@@ -406,7 +432,7 @@ function KolomKop({
         {label}
         <PijlOmlaag
           className={`size-3 transition-transform duration-200 motion-reduce:transition-none ${actief ? "" : "invisible"} ${
-            actief && !sortering.aflopend ? "rotate-180" : ""
+            actief && !filters.aflopend ? "rotate-180" : ""
           }`}
         />
       </button>

@@ -8,11 +8,13 @@ import {
   useReducedMotion,
   type PanInfo,
 } from "motion/react";
+import Link from "next/link";
 import { useEffect, useEffectEvent, useRef, useSyncExternalStore, type PointerEvent } from "react";
 import { createPortal } from "react-dom";
-import type { Positie, Speler } from "@/lib/spelers";
-import { KOLOMMEN, POSITIE_NAMEN, formatteer, waarde, type Statistiek } from "@/lib/statistieken";
-import { Kruis, Waarschuwing } from "./iconen";
+import type { Speler } from "@/lib/competitie";
+import { GROEPEN, POSITIE_NAMEN, formatteer, uitlegVan, waarde, type Statistiek } from "@/lib/statistieken";
+import { Kruis, PijlRechts } from "./iconen";
+import { NieuwsBlok } from "./nieuws";
 import { lijnErboven } from "./stijl";
 
 // Een veer zoals Apple ze gebruikt: "bounce: 0" = geen overschot, rustig tot stilstand.
@@ -25,19 +27,6 @@ const TEGELS: { sleutel: Statistiek; label: string }[] = [
   { sleutel: "goals", label: "Goals" },
   { sleutel: "assists", label: "Assists" },
 ];
-
-type Groep = { titel: string; kolommen: Statistiek[] };
-const AANVAL: Groep = { titel: "Aanval", kolommen: ["goals", "assists", "xg", "xa"] };
-const VERDEDIGING: Groep = { titel: "Verdediging", kolommen: ["tackles", "recoveries", "cbi", "cleanSheets"] };
-const KEEPER: Groep = { titel: "Keeper", kolommen: ["saves"] };
-
-// Wat het belangrijkst is voor een positie, staat bovenaan
-const GROEPEN: Record<Positie, Groep[]> = {
-  GKP: [KEEPER, VERDEDIGING, AANVAL],
-  DEF: [VERDEDIGING, AANVAL],
-  MID: [AANVAL, VERDEDIGING],
-  FWD: [AANVAL, VERDEDIGING],
-};
 
 /**
  * Waar komt een veeg tot stilstand? Dezelfde formule als het uitbollen van het
@@ -209,12 +198,7 @@ function SpelerKaart({
       </div>
 
       <div className="overflow-y-auto overscroll-contain px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
-        {speler.nieuws && (
-          <p className="mb-4 flex gap-2.5 rounded-xl bg-waarschuwing-zacht px-3.5 py-3 text-[15px] leading-snug text-waarschuwing">
-            <Waarschuwing className="mt-0.5 size-4 shrink-0" />
-            {speler.nieuws}
-          </p>
-        )}
+        <NieuwsBlok speler={speler} className="mb-4" />
 
         <dl className="grid grid-cols-3 gap-2">
           {TEGELS.map((tegel) => (
@@ -237,7 +221,7 @@ function SpelerKaart({
             <ul className="rounded-xl bg-vlak">
               {groep.kolommen.map((sleutel) => (
                 <li key={sleutel} className={`flex min-h-11 items-center px-4 py-2.5 text-[15px] leading-snug ${lijnErboven}`}>
-                  <span className="flex-1">{KOLOMMEN.find((k) => k.sleutel === sleutel)?.uitleg}</span>
+                  <span className="flex-1">{uitlegVan(sleutel)}</span>
                   <span className="w-16 text-right font-semibold tabular-nums">
                     {formatteer(sleutel, speler[sleutel], false)}
                   </span>
@@ -251,6 +235,17 @@ function SpelerKaart({
         ))}
 
         <p className="mt-4 px-4 text-xs text-secundair">Per 90 = gemiddeld per 90 gespeelde minuten, één volle wedstrijd.</p>
+
+        {/* onClick sluit de kaart, zodat ze niet meer openstaat als je later terugkomt */}
+        <Link
+          href={`/spelers/${speler.id}`}
+          onClick={onSluit}
+          className="mt-5 flex h-12 items-center justify-center gap-1.5 rounded-xl bg-accent text-[17px] font-semibold text-op-accent outline-none transition-[opacity,transform] duration-100 focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:ring-offset-2 focus-visible:ring-offset-kaart active:scale-[0.98] active:opacity-80"
+        >
+          Volledig profiel
+          <PijlRechts className="size-4" />
+        </Link>
+        <p className="mt-2 text-center text-xs text-secundair">Met de cijfers per wedstrijd en de volgende tegenstanders.</p>
       </div>
     </>
   );

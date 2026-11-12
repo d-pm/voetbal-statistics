@@ -1,0 +1,37 @@
+# Controleert de website bij elke pull request die iets in web/ verandert:
+# de code wordt nagekeken (lint) en de site wordt gebouwd zoals Vercel dat doet.
+# Het resultaat zie je onderaan de pull request: een groen vinkje of een rood kruisje.
+name: Website (Next.js)
+
+on:
+  pull_request:
+    paths:
+      - "web/**"
+      - ".github/workflows/web.yml"
+  push:
+    branches: [main]
+    paths:
+      - "web/**"
+      - ".github/workflows/web.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  bouwen:
+    name: Lint en build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      # De build haalt echte data op bij de FPL API, net zoals op Vercel
+      - run: npm run build

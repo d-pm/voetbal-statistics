@@ -79,3 +79,65 @@ export function Kruis(props: IcoonProps) {
     </Icoon>
   );
 }
+
+export function PijlLinks(props: IcoonProps) {
+  return (
+    <Icoon {...props}>
+      <path d="M10 3.5 5.5 8l4.5 4.5" />
+    </Icoon>
+  );
+}
+
+export function Kruisje(props: IcoonProps) {
+  return (
+    <Icoon {...props}>
+      <circle cx="8" cy="8" r="6.25" />
+      <path d="m5.75 5.75 4.5 4.5m0-4.5-4.5 4.5" />
+    </Icoon>
+  );
+}
+
+// ---- Iets grotere iconen voor de navigatie ----
+
+function GrootIcoon({ className = "size-6", children }: IcoonProps & { children: ReactNode }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.75}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      className={className}
+    >
+      {children}
+    </svg>
+  );
+}
+
+export function Huis(props: IcoonProps) {
+  return (
+    <GrootIcoon {...props}>
+      <path d="M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1Z" />
+    </GrootIcoon>
+  );
+}
+
+export function Persoon(props: IcoonProps) {
+  return (
+    <GrootIcoon {...props}>
+      <circle cx="12" cy="8" r="3.75" />
+      <path d="M4.75 20c.7-3.7 3.6-5.5 7.25-5.5s6.55 1.8 7.25 5.5" />
+    </GrootIcoon>
+  );
+}
+
+export function Kalender(props: IcoonProps) {
+  return (
+    <GrootIcoon {...props}>
+      <rect x="4" y="5.5" width="16" height="14.5" rx="2.5" />
+      <path d="M4 10.25h16M8.5 3.5v4M15.5 3.5v4" />
+    </GrootIcoon>
+  );
+}
